@@ -56,7 +56,7 @@ const LEVELS = {
         ],
         portals: [
             { x: 0, y: 2, targetLevel: "school_yard", targetX: 8, targetY: 5 }, // Go out
-            { x: 19, y: 2, targetLevel: "basement", targetX: 2, targetY: 2 }   // Go down
+            { x: 19, y: 2, targetLevel: "basement", targetX: 2, targetY: 3 }   // Go down (spawn BELOW stairs)
         ],
         startPos: { x: 2, y: 2 },
         npcs: [] // Här kan vi lägga "Bully" eller "Teacher" sen

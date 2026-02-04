@@ -20,7 +20,7 @@ const LEVELS = {
             "W__________________W",
             "W_W__W__D___W__W___W", // D = Door in
             "W_W__W______W__W___W",
-            "WWWWWWWWWWWWWWWWWWWW",
+            "WWWWWWWWW__WWWWWWWWW",
             ".......#____#.......",
             ".......######.......",
             ".......######.......",

@@ -2,56 +2,237 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYSTEM_ONLINE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>School Days - Prototype</title>
     <style>
-        body {
-            background-color: #0d0d0d;
-            color: #00ff41;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
+        body { margin: 0; padding: 0; background: #222; overflow: hidden; touch-action: none; }
+        canvas { display: block; margin: 0 auto; }
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-family: monospace;
+            pointer-events: none;
+            user-select: none;
         }
-        .terminal {
-            width: 80%;
-            max-width: 600px;
-        }
-        .line {
-            display: block;
-            margin-bottom: 10px;
-            opacity: 0;
-            animation: fadeIn 0.1s forwards;
-        }
-        .cursor {
-            display: inline-block;
-            width: 10px;
-            height: 1.2em;
-            background-color: #00ff41;
-            animation: blink 1s infinite;
-            vertical-align: bottom;
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-        /* Stagger animations */
-        .line:nth-child(1) { animation-delay: 0.5s; }
-        .line:nth-child(2) { animation-delay: 1.5s; }
-        .line:nth-child(3) { animation-delay: 2.5s; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 </head>
 <body>
-    <div class="terminal">
-        <span class="line">> SYSTEM_BOOT_SEQUENCE_INITIATED...</span>
-        <span class="line">> CONNECTING_TO_HOST... [OK]</span>
-        <span class="line">> HELLO_WORLD <span class="cursor"></span></span>
-    </div>
+    <div id="controls-hint">WASD / ARROWS to Move &bull; TOUCH & DRAG on Mobile</div>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: '#2d2d2d',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 }, // Top down, no gravity
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            },
+            pixelArt: true, // Crucial for that crispy look
+            scale: {
+                mode: Phaser.Scale.RESIZE,
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            }
+        };
+
+        const game = new Phaser.Game(config);
+        let player;
+        let cursors;
+        let wasd;
+        let joyStick = { active: false, x: 0, y: 0, originX: 0, originY: 0 };
+        const SPEED = 160;
+
+        function preload() {
+            // Generate placeholder textures programmatically (Pixel Art Style)
+            
+            // 1. Player (The Kid) - Blue shirt
+            let g = this.make.graphics({x:0, y:0, add: false});
+            g.fillStyle(0x3366ff, 1); // Shirt
+            g.fillRect(4, 8, 24, 16);
+            g.fillStyle(0xffccaa, 1); // Head
+            g.fillRect(8, 0, 16, 10);
+            g.fillStyle(0x222222, 1); // Pants
+            g.fillRect(6, 22, 20, 10);
+            g.generateTexture('player', 32, 32);
+
+            // 2. Tiles
+            // Grass
+            g.clear();
+            g.fillStyle(0x4caf50, 1);
+            g.fillRect(0, 0, 32, 32);
+            g.fillStyle(0x388e3c, 1); // Blade details
+            g.fillRect(5, 5, 2, 2); g.fillRect(20, 20, 2, 2);
+            g.generateTexture('grass', 32, 32);
+
+            // Asphalt
+            g.clear();
+            g.fillStyle(0x555555, 1);
+            g.fillRect(0, 0, 32, 32);
+            g.fillStyle(0x777777, 1); // Pebbles
+            g.fillRect(10, 5, 2, 2); g.fillRect(25, 25, 2, 2);
+            g.generateTexture('asphalt', 32, 32);
+
+            // School Floor
+            g.clear();
+            g.fillStyle(0xdcedc8, 1); // Linoleum color
+            g.fillRect(0, 0, 32, 32);
+            g.fillStyle(0xaed581, 0.5); // Checkered pattern
+            g.fillRect(0, 0, 16, 16); g.fillRect(16, 16, 16, 16);
+            g.generateTexture('floor', 32, 32);
+
+            // Brick Wall
+            g.clear();
+            g.fillStyle(0xa1887f, 1);
+            g.fillRect(0, 0, 32, 32);
+            g.fillStyle(0x5d4037, 1); // Bricks
+            g.fillRect(0, 0, 30, 14); g.fillRect(2, 16, 30, 14);
+            g.generateTexture('wall', 32, 32);
+
+            // Basket Hoop
+            g.clear();
+            g.fillStyle(0xff5722, 1);
+            g.fillRect(0, 0, 32, 32);
+            g.generateTexture('hoop', 32, 32);
+        }
+
+        function create() {
+            // --- MAP GENERATION ---
+            // Simple string map
+            // . = Grass, # = Asphalt, _ = Floor, W = Wall, B = Basket
+            const mapLayout = [
+                "WWWWWWWWWWWWWWWWWWWW",
+                "W__________________W",
+                "W___WWWW____WWWW___W",
+                "W___W__________W___W",
+                "W___W__CLASS___W___W",
+                "W___W__________W___W",
+                "W___WWWW____WWWW___W",
+                "W__________________W",
+                "W________DD________W",
+                "WWWWWWWW____WWWWWWWW",
+                ".......#____#.......",
+                ".......######.......",
+                ".......######.......",
+                ".......######.......",
+                ".......######.......",
+                "...B...######...B...",
+                ".......######.......",
+                "....................",
+                "....................",
+                "...................."
+            ];
+
+            const TILE_SIZE = 32;
+            const walls = this.physics.add.staticGroup();
+
+            for (let y = 0; y < mapLayout.length; y++) {
+                for (let x = 0; x < mapLayout[y].length; x++) {
+                    const char = mapLayout[y][x];
+                    const posX = x * TILE_SIZE;
+                    const posY = y * TILE_SIZE;
+
+                    if (char === 'W') {
+                        walls.create(posX + 16, posY + 16, 'wall');
+                    } else if (char === '_') {
+                        this.add.image(posX + 16, posY + 16, 'floor');
+                    } else if (char === '.') {
+                        this.add.image(posX + 16, posY + 16, 'grass');
+                    } else if (char === '#') {
+                        this.add.image(posX + 16, posY + 16, 'asphalt');
+                    } else if (char === 'B') {
+                        this.add.image(posX + 16, posY + 16, 'grass'); // Grass under
+                        let hoop = walls.create(posX + 16, posY + 16, 'hoop'); // Solid hoop
+                    } else if (char === 'D') {
+                        this.add.image(posX + 16, posY + 16, 'floor'); // Doorway
+                    }
+                }
+            }
+
+            // --- PLAYER ---
+            player = this.physics.add.sprite(320, 500, 'player');
+            player.setCollideWorldBounds(true);
+
+            // Collision
+            this.physics.add.collider(player, walls);
+
+            // Camera
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
+            this.cameras.main.setZoom(2); // Zoom in for pixel art look
+
+            // --- CONTROLS ---
+            cursors = this.input.keyboard.createCursorKeys();
+            wasd = this.input.keyboard.addKeys({
+                up: Phaser.Input.Keyboard.KeyCodes.W,
+                down: Phaser.Input.Keyboard.KeyCodes.S,
+                left: Phaser.Input.Keyboard.KeyCodes.A,
+                right: Phaser.Input.Keyboard.KeyCodes.D
+            });
+
+            // Mobile Touch Controls (Virtual Joystick logic)
+            this.input.on('pointerdown', (pointer) => {
+                joyStick.active = true;
+                joyStick.originX = pointer.x;
+                joyStick.originY = pointer.y;
+                joyStick.x = pointer.x;
+                joyStick.y = pointer.y;
+            });
+
+            this.input.on('pointermove', (pointer) => {
+                if (joyStick.active) {
+                    joyStick.x = pointer.x;
+                    joyStick.y = pointer.y;
+                }
+            });
+
+            this.input.on('pointerup', () => {
+                joyStick.active = false;
+            });
+        }
+
+        function update() {
+            player.body.setVelocity(0);
+            let velX = 0;
+            let velY = 0;
+
+            // Keyboard
+            if (cursors.left.isDown || wasd.left.isDown) velX = -1;
+            else if (cursors.right.isDown || wasd.right.isDown) velX = 1;
+
+            if (cursors.up.isDown || wasd.up.isDown) velY = -1;
+            else if (cursors.down.isDown || wasd.down.isDown) velY = 1;
+
+            // Touch Joystick Override
+            if (joyStick.active) {
+                const diffX = joyStick.x - joyStick.originX;
+                const diffY = joyStick.y - joyStick.originY;
+                const deadZone = 10;
+
+                if (Math.abs(diffX) > deadZone) velX = Math.sign(diffX);
+                if (Math.abs(diffY) > deadZone) velY = Math.sign(diffY);
+            }
+
+            // Normalize and set velocity
+            if (velX !== 0 || velY !== 0) {
+                // Normalize vector to prevent faster diagonal movement
+                const length = Math.sqrt(velX * velX + velY * velY);
+                velX /= length;
+                velY /= length;
+
+                player.setVelocity(velX * SPEED, velY * SPEED);
+            }
+        }
+    </script>
 </body>
 </html>

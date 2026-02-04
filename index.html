@@ -3,25 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>School Days - Prototype</title>
+    <title>Stranger Things Prototype</title>
     <style>
-        body { margin: 0; padding: 0; background: #222; overflow: hidden; touch-action: none; }
-        canvas { display: block; margin: 0 auto; }
-        #controls-hint {
+        body { margin: 0; padding: 0; background: #111; overflow: hidden; touch-action: none; }
+        canvas { display: block; margin: 0 auto; box-shadow: 0 0 20px rgba(0,255,0,0.2); }
+        #ui-layer {
             position: absolute;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-            color: rgba(255,255,255,0.5);
-            font-family: monospace;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-shadow: 0 0 5px #0f0;
             pointer-events: none;
-            user-select: none;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="js/levels.js"></script> <!-- Load our level data -->
 </head>
 <body>
-    <div id="controls-hint">WASD / ARROWS to Move &bull; TOUCH & DRAG on Mobile</div>
+    <div id="ui-layer">
+        ZONE: <span id="zone-name">LOADING...</span>
+    </div>
+
     <script>
         const config = {
             type: Phaser.AUTO,
@@ -30,17 +34,14 @@
             backgroundColor: '#2d2d2d',
             physics: {
                 default: 'arcade',
-                arcade: {
-                    gravity: { y: 0 }, // Top down, no gravity
-                    debug: false
-                }
+                arcade: { gravity: { y: 0 }, debug: false }
             },
             scene: {
                 preload: preload,
                 create: create,
                 update: update
             },
-            pixelArt: true, // Crucial for that crispy look
+            pixelArt: true,
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH
@@ -48,189 +49,200 @@
         };
 
         const game = new Phaser.Game(config);
+        
+        // Game State
         let player;
-        let cursors;
-        let wasd;
-        let joyStick = { active: false, x: 0, y: 0, originX: 0, originY: 0 };
+        let cursors, wasd, joyStick = { active: false, x: 0, y: 0, originX: 0, originY: 0 };
+        let wallsGroup; // Colliders
+        let portalsGroup; // Teleporters
+        let currentMapTiles = []; // To cleanup old tiles
+        const TILE_SIZE = 32;
         const SPEED = 160;
+        let isTransitioning = false;
 
         function preload() {
-            // Generate placeholder textures programmatically (Pixel Art Style)
-            
-            // 1. Player (The Kid) - Blue shirt
+            // --- PROCEDURAL TEXTURES (Pixel Art Style) ---
             let g = this.make.graphics({x:0, y:0, add: false});
-            g.fillStyle(0x3366ff, 1); // Shirt
-            g.fillRect(4, 8, 24, 16);
-            g.fillStyle(0xffccaa, 1); // Head
-            g.fillRect(8, 0, 16, 10);
-            g.fillStyle(0x222222, 1); // Pants
-            g.fillRect(6, 22, 20, 10);
+
+            // Player
+            g.fillStyle(0x3366ff, 1); g.fillRect(4, 8, 24, 16); // Shirt
+            g.fillStyle(0xffccaa, 1); g.fillRect(8, 0, 16, 10); // Head
+            g.fillStyle(0x222222, 1); g.fillRect(6, 22, 20, 10); // Pants
             g.generateTexture('player', 32, 32);
 
-            // 2. Tiles
+            // Wall
+            g.clear(); g.fillStyle(0xa1887f, 1); g.fillRect(0,0,32,32);
+            g.fillStyle(0x5d4037, 1); g.fillRect(0,0,30,14); g.fillRect(2,16,30,14);
+            g.generateTexture('wall', 32, 32);
+
+            // Floor (School)
+            g.clear(); g.fillStyle(0xdcedc8, 1); g.fillRect(0,0,32,32);
+            g.fillStyle(0xaed581, 0.5); g.fillRect(0,0,16,16); g.fillRect(16,16,16,16);
+            g.generateTexture('floor', 32, 32);
+
+            // Floor (Basement)
+            g.clear(); g.fillStyle(0x424242, 1); g.fillRect(0,0,32,32);
+            g.fillStyle(0x212121, 0.5); g.fillRect(0,0,32,2); g.fillRect(0,16,32,2);
+            g.generateTexture('concrete', 32, 32);
+
             // Grass
-            g.clear();
-            g.fillStyle(0x4caf50, 1);
-            g.fillRect(0, 0, 32, 32);
-            g.fillStyle(0x388e3c, 1); // Blade details
-            g.fillRect(5, 5, 2, 2); g.fillRect(20, 20, 2, 2);
+            g.clear(); g.fillStyle(0x2e7d32, 1); g.fillRect(0,0,32,32);
             g.generateTexture('grass', 32, 32);
 
             // Asphalt
-            g.clear();
-            g.fillStyle(0x555555, 1);
-            g.fillRect(0, 0, 32, 32);
-            g.fillStyle(0x777777, 1); // Pebbles
-            g.fillRect(10, 5, 2, 2); g.fillRect(25, 25, 2, 2);
+            g.clear(); g.fillStyle(0x555555, 1); g.fillRect(0,0,32,32);
             g.generateTexture('asphalt', 32, 32);
 
-            // School Floor
-            g.clear();
-            g.fillStyle(0xdcedc8, 1); // Linoleum color
-            g.fillRect(0, 0, 32, 32);
-            g.fillStyle(0xaed581, 0.5); // Checkered pattern
-            g.fillRect(0, 0, 16, 16); g.fillRect(16, 16, 16, 16);
-            g.generateTexture('floor', 32, 32);
+            // Door
+            g.clear(); g.fillStyle(0x5d4037, 1); g.fillRect(2,2,28,30);
+            g.fillStyle(0xffd700, 1); g.fillCircle(24, 16, 2); // Knob
+            g.generateTexture('door', 32, 32);
 
-            // Brick Wall
-            g.clear();
-            g.fillStyle(0xa1887f, 1);
-            g.fillRect(0, 0, 32, 32);
-            g.fillStyle(0x5d4037, 1); // Bricks
-            g.fillRect(0, 0, 30, 14); g.fillRect(2, 16, 30, 14);
-            g.generateTexture('wall', 32, 32);
-
-            // Basket Hoop
-            g.clear();
-            g.fillStyle(0xff5722, 1);
-            g.fillRect(0, 0, 32, 32);
-            g.generateTexture('hoop', 32, 32);
+            // Stairs
+            g.clear(); g.fillStyle(0x757575, 1); g.fillRect(0,0,32,32);
+            g.fillStyle(0x000000, 0.5); 
+            for(let i=0; i<32; i+=4) g.fillRect(0, i, 32, 2);
+            g.generateTexture('stairs', 32, 32);
         }
 
         function create() {
-            // --- MAP GENERATION ---
-            // Simple string map
-            // . = Grass, # = Asphalt, _ = Floor, W = Wall, B = Basket
-            const mapLayout = [
-                "WWWWWWWWWWWWWWWWWWWW",
-                "W__________________W",
-                "W___WWWW____WWWW___W",
-                "W___W__________W___W",
-                "W___W__CLASS___W___W",
-                "W___W__________W___W",
-                "W___WWWW____WWWW___W",
-                "W__________________W",
-                "W________DD________W",
-                "WWWWWWWW____WWWWWWWW",
-                ".......#____#.......",
-                ".......######.......",
-                ".......######.......",
-                ".......######.......",
-                ".......######.......",
-                "...B...######...B...",
-                ".......######.......",
-                "....................",
-                "....................",
-                "...................."
-            ];
+            // Inputs
+            cursors = this.input.keyboard.createCursorKeys();
+            wasd = this.input.keyboard.addKeys({ up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S, left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D });
+            
+            // Mobile Touch
+            this.input.on('pointerdown', p => { joyStick.active = true; joyStick.originX = p.x; joyStick.originY = p.y; joyStick.x = p.x; joyStick.y = p.y; });
+            this.input.on('pointermove', p => { if(joyStick.active) { joyStick.x = p.x; joyStick.y = p.y; } });
+            this.input.on('pointerup', () => { joyStick.active = false; });
 
-            const TILE_SIZE = 32;
-            const walls = this.physics.add.staticGroup();
+            // Groups
+            wallsGroup = this.physics.add.staticGroup();
+            portalsGroup = this.physics.add.staticGroup();
 
-            for (let y = 0; y < mapLayout.length; y++) {
-                for (let x = 0; x < mapLayout[y].length; x++) {
-                    const char = mapLayout[y][x];
-                    const posX = x * TILE_SIZE;
-                    const posY = y * TILE_SIZE;
+            // Player Init
+            player = this.physics.add.sprite(0, 0, 'player');
+            player.setDepth(10); // Always on top
+            player.setCollideWorldBounds(true);
+            
+            // Collisions
+            this.physics.add.collider(player, wallsGroup);
+            this.physics.add.overlap(player, portalsGroup, handlePortal, null, this);
 
+            // Camera
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
+            this.cameras.main.setZoom(2);
+
+            // Load Initial Level
+            loadLevel(this, 'school_yard');
+        }
+
+        function loadLevel(scene, levelId, spawnX, spawnY) {
+            if (!LEVELS[levelId]) { console.error("Level not found:", levelId); return; }
+            const levelData = LEVELS[levelId];
+
+            console.log("Loading Level:", levelId);
+            isTransitioning = false;
+
+            // 1. Clear old map
+            wallsGroup.clear(true, true);
+            portalsGroup.clear(true, true);
+            currentMapTiles.forEach(t => t.destroy());
+            currentMapTiles = [];
+
+            // 2. Set Environment
+            scene.cameras.main.setBackgroundColor(levelData.bgColor);
+            document.getElementById('zone-name').innerText = levelData.name.toUpperCase();
+
+            // 3. Build Map
+            const layout = levelData.layout;
+            for (let y = 0; y < layout.length; y++) {
+                for (let x = 0; x < layout[y].length; x++) {
+                    const char = layout[y][x];
+                    const px = x * TILE_SIZE + 16;
+                    const py = y * TILE_SIZE + 16;
+
+                    // Floor (Background)
+                    let bgKey = 'grass'; // Default
+                    if (char === '_' || char === 'D' || char === 'S' || char === 'U') bgKey = 'floor';
+                    if (char === '#' ) bgKey = 'asphalt';
+                    if (char === '=' || (levelId === 'basement' && char !== 'W')) bgKey = 'concrete';
+
+                    // Add Floor Tile
+                    let tile = scene.add.image(px, py, bgKey);
+                    currentMapTiles.push(tile);
+
+                    // Add Objects (Walls, Portals)
                     if (char === 'W') {
-                        walls.create(posX + 16, posY + 16, 'wall');
-                    } else if (char === '_') {
-                        this.add.image(posX + 16, posY + 16, 'floor');
-                    } else if (char === '.') {
-                        this.add.image(posX + 16, posY + 16, 'grass');
-                    } else if (char === '#') {
-                        this.add.image(posX + 16, posY + 16, 'asphalt');
+                        wallsGroup.create(px, py, 'wall');
+                    } else if (char === 'D' || char === 'S' || char === 'U') {
+                        // Check if this coordinate is a portal in data
+                        const pData = levelData.portals.find(p => p.x === x && p.y === y);
+                        if (pData) {
+                            let pObj = portalsGroup.create(px, py, char === 'D' ? 'door' : 'stairs');
+                            pObj.setData('target', pData.targetLevel);
+                            pObj.setData('tx', pData.targetX);
+                            pObj.setData('ty', pData.targetY);
+                            pObj.alpha = 0.8; // Semi-transparent overlay
+                        } else {
+                            // Just visual if no data
+                             scene.add.image(px, py, char === 'D' ? 'door' : 'stairs');
+                        }
                     } else if (char === 'B') {
-                        this.add.image(posX + 16, posY + 16, 'grass'); // Grass under
-                        let hoop = walls.create(posX + 16, posY + 16, 'hoop'); // Solid hoop
-                    } else if (char === 'D') {
-                        this.add.image(posX + 16, posY + 16, 'floor'); // Doorway
+                         wallsGroup.create(px, py, 'wall').setTint(0xff0000); // Hacky basket hoop
                     }
                 }
             }
 
-            // --- PLAYER ---
-            player = this.physics.add.sprite(320, 500, 'player');
-            player.setCollideWorldBounds(true);
+            // 4. Position Player
+            const finalX = (spawnX !== undefined ? spawnX : levelData.startPos.x) * TILE_SIZE + 16;
+            const finalY = (spawnY !== undefined ? spawnY : levelData.startPos.y) * TILE_SIZE + 16;
+            player.setPosition(finalX, finalY);
 
-            // Collision
-            this.physics.add.collider(player, walls);
+            // 5. World Bounds
+            scene.physics.world.setBounds(0, 0, layout[0].length * TILE_SIZE, layout.length * TILE_SIZE);
+        }
 
-            // Camera
-            this.cameras.main.startFollow(player, true, 0.1, 0.1);
-            this.cameras.main.setZoom(2); // Zoom in for pixel art look
+        function handlePortal(player, portal) {
+            if (isTransitioning) return;
+            
+            const targetLevel = portal.getData('target');
+            const targetX = portal.getData('tx');
+            const targetY = portal.getData('ty');
 
-            // --- CONTROLS ---
-            cursors = this.input.keyboard.createCursorKeys();
-            wasd = this.input.keyboard.addKeys({
-                up: Phaser.Input.Keyboard.KeyCodes.W,
-                down: Phaser.Input.Keyboard.KeyCodes.S,
-                left: Phaser.Input.Keyboard.KeyCodes.A,
-                right: Phaser.Input.Keyboard.KeyCodes.D
-            });
-
-            // Mobile Touch Controls (Virtual Joystick logic)
-            this.input.on('pointerdown', (pointer) => {
-                joyStick.active = true;
-                joyStick.originX = pointer.x;
-                joyStick.originY = pointer.y;
-                joyStick.x = pointer.x;
-                joyStick.y = pointer.y;
-            });
-
-            this.input.on('pointermove', (pointer) => {
-                if (joyStick.active) {
-                    joyStick.x = pointer.x;
-                    joyStick.y = pointer.y;
-                }
-            });
-
-            this.input.on('pointerup', () => {
-                joyStick.active = false;
-            });
+            if (targetLevel) {
+                isTransitioning = true;
+                
+                // Simple Fade Effect
+                this.cameras.main.fade(500, 0, 0, 0);
+                this.cameras.main.once('camerafadeoutcomplete', () => {
+                    loadLevel(this, targetLevel, targetX, targetY);
+                    this.cameras.main.fadeIn(500, 0, 0, 0);
+                });
+            }
         }
 
         function update() {
-            player.body.setVelocity(0);
-            let velX = 0;
-            let velY = 0;
+            if (isTransitioning) { player.setVelocity(0); return; }
 
-            // Keyboard
+            player.body.setVelocity(0);
+            let velX = 0, velY = 0;
+
             if (cursors.left.isDown || wasd.left.isDown) velX = -1;
             else if (cursors.right.isDown || wasd.right.isDown) velX = 1;
-
             if (cursors.up.isDown || wasd.up.isDown) velY = -1;
             else if (cursors.down.isDown || wasd.down.isDown) velY = 1;
 
-            // Touch Joystick Override
             if (joyStick.active) {
-                const diffX = joyStick.x - joyStick.originX;
-                const diffY = joyStick.y - joyStick.originY;
-                const deadZone = 10;
-
-                if (Math.abs(diffX) > deadZone) velX = Math.sign(diffX);
-                if (Math.abs(diffY) > deadZone) velY = Math.sign(diffY);
+                const dx = joyStick.x - joyStick.originX;
+                const dy = joyStick.y - joyStick.originY;
+                if (Math.abs(dx) > 10) velX = Math.sign(dx);
+                if (Math.abs(dy) > 10) velY = Math.sign(dy);
             }
 
-            // Normalize and set velocity
             if (velX !== 0 || velY !== 0) {
-                // Normalize vector to prevent faster diagonal movement
-                const length = Math.sqrt(velX * velX + velY * velY);
-                velX /= length;
-                velY /= length;
-
-                player.setVelocity(velX * SPEED, velY * SPEED);
+                // Diagonal normalization
+                const l = Math.sqrt(velX*velX + velY*velY);
+                player.setVelocity((velX/l) * SPEED, (velY/l) * SPEED);
             }
         }
     </script>

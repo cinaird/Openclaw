@@ -7,7 +7,7 @@ export const schoolYard = {
         "....................",
         "WWWWWWWWWWWWWWWWWWWW",
         "W__________________W",
-        "W_W__W______W__W___W",
+        "W_W__W__D___W__W___W",
         "W_W__W______W__W___W",
         "WWWWWWWWW__WWWWWWWWW",
         ".......#____#.......",
@@ -20,12 +20,12 @@ export const schoolYard = {
         "...................."
     ],
     interactables: [
-        { 
-            type: "TELEPORT", 
+        {
+            type: "TELEPORT",
             x: 8, y: 4, // Was 'D' before
-            targetLevel: "school_hall", 
-            targetSpawnX: 2, 
-            targetSpawnY: 5 
+            targetLevel: "school_hall",
+            targetSpawnX: 2,
+            targetSpawnY: 5
         }
     ],
     startPos: { x: 10, y: 10 }

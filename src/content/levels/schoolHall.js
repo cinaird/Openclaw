@@ -5,7 +5,7 @@ export const schoolHall = {
     layout: [
         "WWWWWWWWWWWWWWWWWWWW",
         "W__________________W",
-        "___________________S",
+        "D__________________S",
         "W__________________W",
         "W__WWWW__WWWW__WW__W",
         "W__W_____W_____W___W",

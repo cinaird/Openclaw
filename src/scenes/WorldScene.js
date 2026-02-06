@@ -12,16 +12,16 @@ export class WorldScene extends Phaser.Scene {
     create() {
         // Inputs
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd = this.input.keyboard.addKeys({ 
-            up: Phaser.Input.Keyboard.KeyCodes.W, 
-            down: Phaser.Input.Keyboard.KeyCodes.S, 
-            left: Phaser.Input.Keyboard.KeyCodes.A, 
-            right: Phaser.Input.Keyboard.KeyCodes.D 
+        this.wasd = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A,
+            right: Phaser.Input.Keyboard.KeyCodes.D
         });
-        
+
         // Mobile Touch
         this.input.on('pointerdown', p => { this.joyStick.active = true; this.joyStick.originX = p.x; this.joyStick.originY = p.y; this.joyStick.x = p.x; this.joyStick.y = p.y; });
-        this.input.on('pointermove', p => { if(this.joyStick.active) { this.joyStick.x = p.x; this.joyStick.y = p.y; } });
+        this.input.on('pointermove', p => { if (this.joyStick.active) { this.joyStick.x = p.x; this.joyStick.y = p.y; } });
         this.input.on('pointerup', () => { this.joyStick.active = false; });
 
         // Groups
@@ -34,7 +34,7 @@ export class WorldScene extends Phaser.Scene {
         this.player = this.physics.add.sprite(0, 0, 'player');
         this.player.setDepth(10);
         this.player.setCollideWorldBounds(true);
-        
+
         // Collisions
         this.physics.add.collider(this.player, this.wallsGroup);
         this.physics.add.collider(this.npcGroup, this.wallsGroup); // NPCs stop at walls
@@ -46,8 +46,8 @@ export class WorldScene extends Phaser.Scene {
         this.cameras.main.setZoom(2);
 
         // UI Overlay
-        this.zoneLabel = this.add.text(10, 10, 'LOADING...', { 
-            fontFamily: 'Courier New', fontSize: '16px', fill: '#0f0', backgroundColor: '#000' 
+        this.zoneLabel = this.add.text(10, 10, 'LOADING...', {
+            fontFamily: 'Courier New', fontSize: '16px', fill: '#0f0', backgroundColor: '#000'
         }).setScrollFactor(0).setDepth(100);
 
         // Load Initial Level
@@ -108,7 +108,7 @@ export class WorldScene extends Phaser.Scene {
             levelData.interactables.forEach(obj => {
                 const px = obj.x * this.TILE_SIZE + 16;
                 const py = obj.y * this.TILE_SIZE + 16;
-                
+
                 if (obj.type === 'TELEPORT') {
                     let pObj = this.portalsGroup.create(px, py, null);
                     pObj.setVisible(false);
@@ -145,7 +145,7 @@ export class WorldScene extends Phaser.Scene {
 
     handlePortal(player, portal) {
         if (this.isTransitioning) return;
-        
+
         const targetLevel = portal.getData('target');
         const targetX = portal.getData('tx');
         const targetY = portal.getData('ty');
@@ -179,8 +179,8 @@ export class WorldScene extends Phaser.Scene {
         }
 
         if (velX !== 0 || velY !== 0) {
-            const l = Math.sqrt(velX*velX + velY*velY);
-            this.player.setVelocity((velX/l) * this.SPEED, (velY/l) * this.SPEED);
+            const l = Math.sqrt(velX * velX + velY * velY);
+            this.player.setVelocity((velX / l) * this.SPEED, (velY / l) * this.SPEED);
         }
     }
 }

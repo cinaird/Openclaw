@@ -12,22 +12,22 @@ export class WorldScene extends Phaser.Scene {
     create() {
         // Inputs
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd = this.input.keyboard.addKeys({ 
-            up: Phaser.Input.Keyboard.KeyCodes.W, 
-            down: Phaser.Input.Keyboard.KeyCodes.S, 
-            left: Phaser.Input.Keyboard.KeyCodes.A, 
-            right: Phaser.Input.Keyboard.KeyCodes.D 
+        this.wasd = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A,
+            right: Phaser.Input.Keyboard.KeyCodes.D
         });
-        
+
         // Mobile Touch
         this.input.on('pointerdown', p => { this.joyStick.active = true; this.joyStick.originX = p.x; this.joyStick.originY = p.y; this.joyStick.x = p.x; this.joyStick.y = p.y; });
-        this.input.on('pointermove', p => { if(this.joyStick.active) { this.joyStick.x = p.x; this.joyStick.y = p.y; } });
+        this.input.on('pointermove', p => { if (this.joyStick.active) { this.joyStick.x = p.x; this.joyStick.y = p.y; } });
         this.input.on('pointerup', () => { this.joyStick.active = false; });
 
         // Groups
         this.wallsGroup = this.physics.add.staticGroup();
         this.portalsGroup = this.physics.add.staticGroup();
-        this.doorsGroup = this.physics.add.staticGroup(); 
+        this.doorsGroup = this.physics.add.staticGroup();
         this.npcGroup = this.add.group({ runChildUpdate: true });
         this.currentMapTiles = [];
         this.doorsMap = new Map();
@@ -36,14 +36,14 @@ export class WorldScene extends Phaser.Scene {
         this.player = this.physics.add.sprite(0, 0, 'player');
         this.player.setDepth(10);
         this.player.setCollideWorldBounds(true);
-        
+
         // Collisions
         this.physics.add.collider(this.player, this.wallsGroup);
         this.physics.add.collider(this.npcGroup, this.wallsGroup);
         this.physics.add.collider(this.player, this.npcGroup);
         this.physics.add.collider(this.npcGroup, this.doorsGroup); // NPCs collide with closed doors
         this.physics.add.collider(this.player, this.doorsGroup, this.handleDoorCollision, null, this); // Player collides OR interacts
-        
+
         this.physics.add.overlap(this.player, this.portalsGroup, this.handlePortal, null, this);
 
         // Camera
@@ -51,8 +51,8 @@ export class WorldScene extends Phaser.Scene {
         this.cameras.main.setZoom(2);
 
         // UI Overlay
-        this.zoneLabel = this.add.text(10, 10, 'LOADING...', { 
-            fontFamily: 'Courier New', fontSize: '16px', fill: '#0f0', backgroundColor: '#000' 
+        this.zoneLabel = this.add.text(10, 10, 'LOADING...', {
+            fontFamily: 'Courier New', fontSize: '16px', fill: '#0f0', backgroundColor: '#000'
         }).setScrollFactor(0).setDepth(100);
 
         // Load Initial Level
@@ -61,12 +61,13 @@ export class WorldScene extends Phaser.Scene {
 
     loadLevel(levelId, spawnX, spawnY) {
         console.log(`Attempting to load level: "${levelId}"`);
-        if (!LEVELS[levelId]) { 
-            console.error(`Level not found in registry: "${levelId}". Available levels:`, Object.keys(LEVELS)); 
+        if (!LEVELS[levelId]) {
+            console.error(`Level not found in registry: "${levelId}". Available levels:`, Object.keys(LEVELS));
             this.add.text(10, 50, `ERROR: Level "${levelId}" not found!`, { fill: '#f00' }).setScrollFactor(0).setDepth(200);
-            return; 
+            return;
         }
-        const levelData = LEVELS[levelId];
+        this.currentLevelData = LEVELS[levelId];
+        const levelData = this.currentLevelData;
         this.isTransitioning = false;
 
         // Cleanup
@@ -90,21 +91,27 @@ export class WorldScene extends Phaser.Scene {
                 const px = x * this.TILE_SIZE + 16;
                 const py = y * this.TILE_SIZE + 16;
 
-                let bgKey = 'grass';
-                if (['W', 'D', 'S', 'U'].includes(char)) { }
-                if (['_', 'D', 'S', 'U'].includes(char)) bgKey = 'floor';
-                if (char === '#') bgKey = 'asphalt';
-                if (char === '=' || (levelId === 'basement' && char !== 'W')) bgKey = 'concrete';
+                // Determine Background Frame (0: grass, 1: floor, 2: concrete, 3: asphalt)
+                let frame = 0; // Default grass
+                if (levelId === 'basement') frame = 2; // Default concrete for basement
 
-                let tile = this.add.image(px, py, bgKey);
+                if (['_', 'D', 'S', 'U'].includes(char)) frame = 1;
+                if (char === '#') frame = 3;
+                if (char === '=' || (levelId === 'basement' && char !== 'W')) frame = 2;
+
+                // Draw background tile
+                let tile = this.add.image(px, py, 'tileset', frame);
                 this.currentMapTiles.push(tile);
 
                 if (char === 'W') {
-                    this.wallsGroup.create(px, py, 'wall');
+                    // Frame 4 is wall
+                    this.wallsGroup.create(px, py, 'tileset', 4);
                 } else if (char === 'B') {
-                    this.wallsGroup.create(px, py, 'wall').setTint(0xff0000);
+                    // Frame 4 is wall, tinted red for hoop
+                    let w = this.wallsGroup.create(px, py, 'tileset', 4);
+                    w.setTint(0xff0000);
                 } else if (['S', 'U'].includes(char)) {
-                     this.add.image(px, py, 'stairs');
+                    this.add.image(px, py, 'stairs');
                 }
                 // 'D' is handled by interactables now, but we add a visual fallback if no interactable exists
             }
@@ -115,23 +122,25 @@ export class WorldScene extends Phaser.Scene {
             levelData.interactables.forEach(obj => {
                 const px = obj.x * this.TILE_SIZE + 16;
                 const py = obj.y * this.TILE_SIZE + 16;
-                
+
                 if (obj.type === 'TELEPORT') {
                     // This is the trigger (invisible)
                     let pObj = this.portalsGroup.create(px, py, null);
                     pObj.setVisible(false);
-                    pObj.body.setSize(16, 16); 
+                    pObj.body.setSize(16, 16);
                     pObj.setData('target', obj.targetLevel);
                     pObj.setData('tx', obj.targetSpawnX);
                     pObj.setData('ty', obj.targetSpawnY);
                 }
-                
+
                 // If this is a DOOR (that can open/close)
                 // We create a physical door object here
                 if (obj.hasDoor) {
-                    let door = this.doorsGroup.create(px, py, 'door');
+                    const texture = obj.isLocked ? 'locked_door' : 'door';
+                    let door = this.doorsGroup.create(px, py, texture);
                     door.setImmovable(true);
                     door.setData('isOpen', false);
+                    door.setData('isLocked', !!obj.isLocked);
                     door.setData('key', `${obj.x},${obj.y}`); // Key for NPCs to find it
                     this.doorsMap.set(`${obj.x},${obj.y}`, door);
                 }
@@ -179,20 +188,23 @@ export class WorldScene extends Phaser.Scene {
     }
 
     handleDoorCollision(player, door) {
-        // Just a wall collision essentially
+        // Allow player to open the door by walking into it IF it's not locked
+        if (!door.getData('isOpen') && !door.getData('isLocked')) {
+            this.setDoorState(Math.floor(door.x / this.TILE_SIZE), Math.floor(door.y / this.TILE_SIZE), true);
+        }
     }
 
     handlePortal(player, portal) {
         if (this.isTransitioning) return;
-        
+
         // Only teleport if door is open (if there is a door on this tile)
         // Or if it's just a portal (stairs)
-        
+
         // NOTE: Since portal trigger and door physics occupy same space:
         // If door is CLOSED -> Physics collision happens -> Overlap never triggers.
         // If door is OPEN -> Physics disabled -> Overlap triggers -> Teleport!
         // This works automatically!
-        
+
         const targetLevel = portal.getData('target');
         const targetX = portal.getData('tx');
         const targetY = portal.getData('ty');
@@ -229,7 +241,24 @@ export class WorldScene extends Phaser.Scene {
             if (npc.visionPolygon) {
                 const playerBounds = this.player.body.getBounds(new Phaser.Geom.Rectangle());
                 if (Phaser.Geom.Intersects.RectangleToTriangle(playerBounds, npc.visionPolygon)) {
-                    this.triggerGameOver();
+                    // SAFE ZONE CHECK
+                    // Convert player position to grid coordinates
+                    // Center point is better than top-left for "standing on"
+                    const tx = Math.floor(this.player.x / this.TILE_SIZE);
+                    const ty = Math.floor(this.player.y / this.TILE_SIZE);
+
+                    if (this.currentLevelData && this.currentLevelData.layout && this.currentLevelData.layout[ty]) {
+                        const char = this.currentLevelData.layout[ty][tx];
+                        // '.' (Grass) and '#' (Asphalt) are safe
+                        const isSafe = ['.', '#'].includes(char);
+
+                        if (!isSafe) {
+                            this.triggerGameOver();
+                        }
+                    } else {
+                        // Fallback if OOB or no data
+                        this.triggerGameOver();
+                    }
                 }
             }
         });
@@ -250,8 +279,8 @@ export class WorldScene extends Phaser.Scene {
         }
 
         if (velX !== 0 || velY !== 0) {
-            const l = Math.sqrt(velX*velX + velY*velY);
-            this.player.setVelocity((velX/l) * this.SPEED, (velY/l) * this.SPEED);
+            const l = Math.sqrt(velX * velX + velY * velY);
+            this.player.setVelocity((velX / l) * this.SPEED, (velY / l) * this.SPEED);
         }
     }
 }

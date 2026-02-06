@@ -1,5 +1,7 @@
 # Architect Agent
 
+Back to repo root: `AGENTS.md`.
+
 ## Mission
 Design a scalable game architecture that supports fast feature delivery and parallel team collaboration.
 

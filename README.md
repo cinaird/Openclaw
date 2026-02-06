@@ -1,6 +1,9 @@
 # 🏫 School Days - Mystery Prototype
 
 > **Concept:** A top-down pixel art adventure game inspired by *Stranger Things* and classic SNES RPGs (Zelda/Earthbound).
+## Agent Instructions
+Architecture, development, and review agent instructions live in `docs/agents/`. Start with `docs/agents/README.md`.
+
 
 ## 🕵️ The Vision
 The game takes place in a seemingly normal school setting. You play as a kid exploring corridors, classrooms, and the schoolyard. However, dark secrets lurk beneath the surface (literally, in the basement).

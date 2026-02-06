@@ -1,5 +1,7 @@
 # Developer Agent
 
+Back to repo root: `AGENTS.md`.
+
 ## Mission
 Implement features and refactors safely, with clear intent, tests, and maintainable code.
 

@@ -153,7 +153,7 @@ export class WorldScene extends Phaser.Scene {
 
     handlePortal(player, portal) {
         if (this.isTransitioning) return;
-
+        
         const targetLevel = portal.getData('target');
         const targetX = portal.getData('tx');
         const targetY = portal.getData('ty');
@@ -168,8 +168,46 @@ export class WorldScene extends Phaser.Scene {
         }
     }
 
+    triggerGameOver() {
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+
+        console.log("PLAYER CAUGHT! RESTARTING...");
+        
+        // Visual effect: Red flash then fade
+        this.cameras.main.flash(200, 255, 0, 0);
+        this.cameras.main.fade(1000, 0, 0, 0);
+
+        // Show text
+        const txt = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, "CAUGHT!", {
+            fontSize: '64px',
+            color: '#ff0000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            // Restart at School Yard
+            this.scene.restart(); // Or just reload level, but restart is cleaner for prototype
+            // Note: Since we don't pass data to restart(), it will default to 'school_yard' in create()
+        });
+    }
+
     update(time, delta) {
         if (this.isTransitioning) { this.player.setVelocity(0); return; }
+
+        // --- VISION CHECK (Stealth Logic) ---
+        // Iterate through all active NPCs
+        this.npcGroup.getChildren().forEach(npc => {
+            if (npc.visionPolygon) {
+                // Get player bounds (hitbox)
+                const playerBounds = this.player.body.getBounds(new Phaser.Geom.Rectangle());
+
+                // Check if the Vision Triangle intersects Player Rectangle
+                if (Phaser.Geom.Intersects.RectangleToTriangle(playerBounds, npc.visionPolygon)) {
+                    this.triggerGameOver();
+                }
+            }
+        });
 
         this.player.body.setVelocity(0);
         let velX = 0, velY = 0;

@@ -21,6 +21,16 @@ export class BootScene extends Phaser.Scene {
         g.fillRect(0, 0, 32, 32);
         g.generateTexture('door', 32, 32);
 
+        // Locked Door (Dark Iron/Steel)
+        g.clear();
+        g.fillStyle(0x444444, 1);
+        g.fillRect(0, 0, 32, 32);
+        g.lineStyle(2, 0x000000, 1);
+        g.strokeRect(0, 0, 32, 32);
+        g.fillStyle(0x000000, 1);
+        g.fillRect(24, 14, 4, 4); // Keyhole-ish
+        g.generateTexture('locked_door', 32, 32);
+
         // Floor/ground/objects tiles are now loaded from assets/tiles/tileset.png
 
         // UI Font (Optional placeholder if needed)

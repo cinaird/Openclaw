@@ -1,5 +1,7 @@
 # Reviewer Agent
 
+Back to repo root: `AGENTS.md`.
+
 ## Mission
 Protect gameplay quality and codebase health by finding defects, regressions, and maintainability risks before merge.
 

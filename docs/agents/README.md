@@ -2,6 +2,8 @@
 
 Date: 2026-02-04
 
+Back to repo root: `AGENTS.md`.
+
 ## Purpose
 Define clear responsibilities for three collaboration agents in this project:
 1. Reviewer

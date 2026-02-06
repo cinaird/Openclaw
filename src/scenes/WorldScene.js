@@ -1,4 +1,5 @@
 import { LEVELS } from '../content/levels.js';
+import { NPC } from '../entities/NPC.js';
 
 export class WorldScene extends Phaser.Scene {
     constructor() {
@@ -6,8 +7,6 @@ export class WorldScene extends Phaser.Scene {
         this.TILE_SIZE = 32;
         this.SPEED = 160;
         this.joyStick = { active: false, x: 0, y: 0, originX: 0, originY: 0 };
-        this.map = null;
-        this.groundLayer = null;
     }
 
     create() {
@@ -28,6 +27,9 @@ export class WorldScene extends Phaser.Scene {
         // Groups
         this.wallsGroup = this.physics.add.staticGroup();
         this.portalsGroup = this.physics.add.staticGroup();
+        this.npcGroup = this.add.group({ runChildUpdate: true });
+        this.currentMapTiles = [];
+
         // Player Init
         this.player = this.physics.add.sprite(0, 0, 'player');
         this.player.setDepth(10);
@@ -35,6 +37,8 @@ export class WorldScene extends Phaser.Scene {
         
         // Collisions
         this.physics.add.collider(this.player, this.wallsGroup);
+        this.physics.add.collider(this.npcGroup, this.wallsGroup); // NPCs stop at walls
+        this.physics.add.collider(this.player, this.npcGroup);     // Player bumps into NPCs
         this.physics.add.overlap(this.player, this.portalsGroup, this.handlePortal, null, this);
 
         // Camera
@@ -58,77 +62,70 @@ export class WorldScene extends Phaser.Scene {
         // Cleanup
         this.wallsGroup.clear(true, true);
         this.portalsGroup.clear(true, true);
-        if (this.groundLayer) { this.groundLayer.destroy(); this.groundLayer = null; }
-        if (this.objectLayer) { this.objectLayer.destroy(); this.objectLayer = null; }
-        if (this.map) { this.map.destroy(); this.map = null; }
+        this.npcGroup.clear(true, true); // Kill old NPCs
+        this.currentMapTiles.forEach(t => t.destroy());
+        this.currentMapTiles = [];
 
         // Environment
         this.cameras.main.setBackgroundColor(levelData.bgColor);
         this.zoneLabel.setText("ZONE: " + levelData.name.toUpperCase());
 
-        // Build Map (Visuals) via tilemap (faster than per-tile images)
+        // Build Map (Visuals)
         const layout = levelData.layout;
-        const data = [];
-        for (let y = 0; y < layout.length; y++) {
-            const row = [];
-            for (let x = 0; x < layout[y].length; x++) {
-                const char = layout[y][x];
-                let bgIndex = (levelId === 'basement') ? 2 : 0; // 0: grass, 1: floor, 2: concrete, 3: asphalt
-                if (['_', 'D', 'S', 'U'].includes(char)) bgIndex = 1;
-                if (char === '#') bgIndex = 3;
-                if (char === '=') bgIndex = 2;
-                row.push(bgIndex);
-            }
-            data.push(row);
-        }
-
-        this.map = this.make.tilemap({ data, tileWidth: this.TILE_SIZE, tileHeight: this.TILE_SIZE });
-        const tileset = this.map.addTilesetImage('tileset', 'tileset', this.TILE_SIZE, this.TILE_SIZE, 0, 0);
-        this.groundLayer = this.map.createLayer(0, tileset, 0, 0);
-
-        this.objectLayer = this.map.createBlankLayer('objects', tileset, 0, 0);
-
         for (let y = 0; y < layout.length; y++) {
             for (let x = 0; x < layout[y].length; x++) {
                 const char = layout[y][x];
                 const px = x * this.TILE_SIZE + 16;
                 const py = y * this.TILE_SIZE + 16;
 
+                let bgKey = 'grass';
+                if (['W', 'D', 'S', 'U'].includes(char)) { /* Wall handled below */ }
+                if (['_', 'D', 'S', 'U'].includes(char)) bgKey = 'floor';
+                if (char === '#') bgKey = 'asphalt';
+                if (char === '=' || (levelId === 'basement' && char !== 'W')) bgKey = 'concrete';
+
+                let tile = this.add.image(px, py, bgKey);
+                this.currentMapTiles.push(tile);
+
                 if (char === 'W') {
-                    this.objectLayer.putTileAt(4, x, y);
-                    let w = this.wallsGroup.create(px, py, null);
-                    w.setVisible(false);
-                    w.body.setSize(32, 32);
+                    this.wallsGroup.create(px, py, 'wall');
                 } else if (char === 'B') {
-                    const tile = this.objectLayer.putTileAt(4, x, y);
-                    tile.tint = 0xff0000;
-                    tile.tintFill = true;
-                    let w = this.wallsGroup.create(px, py, null);
-                    w.setVisible(false);
-                    w.body.setSize(32, 32);
+                    this.wallsGroup.create(px, py, 'wall').setTint(0xff0000); // Hoop
                 } else if (['D', 'S', 'U'].includes(char)) {
-                    // Just visual, logic is in interactables now
-                    const index = (char === 'D') ? 5 : 6;
-                    this.objectLayer.putTileAt(index, x, y);
+                     let key = (char === 'D') ? 'door' : 'stairs';
+                     this.add.image(px, py, key);
                 }
             }
         }
 
-        // Build Interactables (Logic)
+        // Build Interactables
         if (levelData.interactables) {
             levelData.interactables.forEach(obj => {
                 const px = obj.x * this.TILE_SIZE + 16;
                 const py = obj.y * this.TILE_SIZE + 16;
                 
                 if (obj.type === 'TELEPORT') {
-                    // Create invisible trigger
                     let pObj = this.portalsGroup.create(px, py, null);
                     pObj.setVisible(false);
-                    pObj.body.setSize(16, 16); // Smaller hitbox
+                    pObj.body.setSize(16, 16); 
                     pObj.setData('target', obj.targetLevel);
                     pObj.setData('tx', obj.targetSpawnX);
                     pObj.setData('ty', obj.targetSpawnY);
                 }
+            });
+        }
+
+        // Spawn NPCs
+        if (levelData.npcs) {
+            levelData.npcs.forEach(npcData => {
+                // Konvertera grid-pos till pixel-pos
+                const px = npcData.x * this.TILE_SIZE + 16;
+                const py = npcData.y * this.TILE_SIZE + 16;
+                
+                // Texture: Vi använder 'player' fast röd-tintad just nu tills vi har 'guard.png'
+                const npc = new NPC(this, px, py, 'player', npcData);
+                npc.setTint(0xff0000); // Röd = Fiende/NPC
+                this.npcGroup.add(npc);
             });
         }
 
@@ -158,7 +155,7 @@ export class WorldScene extends Phaser.Scene {
         }
     }
 
-    update() {
+    update(time, delta) {
         if (this.isTransitioning) { this.player.setVelocity(0); return; }
 
         this.player.body.setVelocity(0);

@@ -30,31 +30,20 @@ The game runs correctly in local development environments but displays a black s
 *   Verify filename casing on the remote repo (`git ls-tree -r HEAD`).
 *   Test explicit synchronous loading or bundling (Webpack/Vite) if native modules continue to fail.
 
-### [BUG-002] Invisible Door Visuals
-**Status:** 🔴 OPEN
-**Priority:** Medium
-**Date Reported:** 2026-02-06
-
-#### Description
-The visual representation of doors ('D') and possibly stairs ('S', 'U') does not appear in the game world, although the teleportation functionality (physics trigger) works correctly. The user expects to see the brown door graphic generated in `BootScene`.
-
-#### Symptoms
-*   The tile where a door should be looks like a regular floor tile.
-*   Walking onto the tile triggers the teleport (so the logical object exists).
-
-#### Hypotheses
-1.  **Rendering Order:** The floor tile might be drawing *over* the door sprite if depth sorting is unstable (though insertion order usually dictates z-index in Phaser).
-2.  **Texture Generation:** The 'door' texture might be failing to generate or is transparent.
-3.  **Asset Loading:** If `tileset.png` is active (from the new assets system), it might be overriding the generated graphics logic, or the code expects a tileset frame instead of a generated texture key.
-
-#### Attempted Fixes / Actions
-*   [2026-02-06] Re-added logic to `WorldScene.js` to draw `this.add.image(px, py, 'door')` when 'D' is found.
-
-#### Next Steps
-*   Check `BootScene.js` to ensure `door` texture is generated correctly.
-*   Try explicit `.setDepth(5)` on the door visual to force it above the floor.
-
----
-
 ## ✅ Resolved Issues
-*(None yet)*
+
+### [BUG-002] Invisible Door Visuals
+**Status:** 🟢 RESOLVED
+**Resolution:** Procedural texture for 'door' was missing in `BootScene.js`. Added `g.generateTexture('door', ...)` and verified with Playwright tests.
+
+### [BUG-003] Green Checkerboard / Missing Tileset
+**Status:** 🟢 RESOLVED
+**Resolution:** The game was looking for string-based texture keys (e.g., 'grass', 'floor') which weren't defined. Refactored `WorldScene.js` to use `tileset.png` frames (0-4) and loaded it as a spritesheet in `BootScene.js`.
+
+### [BUG-004] Title, Favicon & Asset Updates Not Reflecting
+**Status:** 🟢 RESOLVED
+**Resolution:** The browser was caching `index.html` and scripts aggressively. Resolved by:
+1. Updating `index.html` with the new title ("5 nights at scool") and a Data URI favicon (🐻).
+2. Restarting the local `http-server` to clear server-side hanging/cache.
+3. Performing a hard refresh (`Ctrl + F5`) in the browser.
+

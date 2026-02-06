@@ -19,6 +19,11 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         // State
         this.targetX = null;
         this.targetY = null;
+        this.lastDirection = 'DOWN'; // Default direction
+
+        // Vision Graphics
+        this.visionGraphics = scene.add.graphics();
+        this.visionGraphics.setDepth(5); // Render below player/walls but above floor
     }
 
     update(time, delta) {
@@ -27,6 +32,37 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         } else {
             this.nextCommand();
         }
+        
+        this.drawVisionCone();
+    }
+
+    drawVisionCone() {
+        this.visionGraphics.clear();
+        
+        // Settings for the cone
+        const range = 100; // Pixel length
+        const angleWidth = 45; // Degrees width
+        const startX = this.x;
+        const startY = this.y;
+        
+        // Determine rotation based on last known direction
+        let rotation = 0;
+        if (this.lastDirection === 'DOWN') rotation = 90;
+        else if (this.lastDirection === 'LEFT') rotation = 180;
+        else if (this.lastDirection === 'UP') rotation = 270;
+        else if (this.lastDirection === 'RIGHT') rotation = 0;
+        
+        // Convert to radians
+        const rad = Phaser.Math.DegToRad(rotation);
+        const halfAngle = Phaser.Math.DegToRad(angleWidth / 2);
+
+        this.visionGraphics.fillStyle(0xffff00, 0.3); // Yellow, 30% transparent
+        this.visionGraphics.beginPath();
+        this.visionGraphics.moveTo(startX, startY);
+        this.visionGraphics.lineTo(startX + Math.cos(rad - halfAngle) * range, startY + Math.sin(rad - halfAngle) * range);
+        this.visionGraphics.arc(startX, startY, range, rad - halfAngle, rad + halfAngle);
+        this.visionGraphics.lineTo(startX, startY);
+        this.visionGraphics.fillPath();
     }
 
     nextCommand() {
@@ -49,6 +85,15 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
             
             // Sätt fart mot målet
             this.scene.physics.moveTo(this, this.targetX, this.targetY, this.walkSpeed);
+            
+            // Räkna ut riktning
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.lastDirection = dx > 0 ? 'RIGHT' : 'LEFT';
+            } else {
+                this.lastDirection = dy > 0 ? 'DOWN' : 'UP';
+            }
         } 
         else if (cmd.type === 'WAIT') {
             this.waitTimer = cmd.ms;

@@ -55,7 +55,12 @@ export class WorldScene extends Phaser.Scene {
     }
 
     loadLevel(levelId, spawnX, spawnY) {
-        if (!LEVELS[levelId]) { console.error("Level not found:", levelId); return; }
+        console.log(`Attempting to load level: "${levelId}"`);
+        if (!LEVELS[levelId]) { 
+            console.error(`Level not found in registry: "${levelId}". Available levels:`, Object.keys(LEVELS)); 
+            this.add.text(10, 50, `ERROR: Level "${levelId}" not found!`, { fill: '#f00' }).setScrollFactor(0).setDepth(200);
+            return; 
+        }
         const levelData = LEVELS[levelId];
         this.isTransitioning = false;
 

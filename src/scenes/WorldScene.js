@@ -38,7 +38,9 @@ export class WorldScene extends Phaser.Scene {
         // Collisions
         this.physics.add.collider(this.player, this.wallsGroup);
         this.physics.add.collider(this.npcSystem.group, this.wallsGroup);
-        this.physics.add.collider(this.player, this.npcSystem.group);
+        this.physics.add.collider(this.player, this.npcSystem.group, (player, npc) => {
+            if (npc.onContact) npc.onContact(player);
+        });
         this.physics.add.collider(this.npcSystem.group, this.doorsGroup); // NPCs collide with closed doors
         this.physics.add.collider(this.player, this.doorsGroup, this.doorSystem.handleDoorCollision, null, this.doorSystem); // Player collides OR interacts
 
@@ -64,7 +66,7 @@ export class WorldScene extends Phaser.Scene {
     triggerGameOver() {
         if (this.isTransitioning) return;
         this.isTransitioning = true;
-        console.log("PLAYER CAUGHT! RESTARTING...");
+        console.log("här får du inte vara, ut!");
         this.cameras.main.flash(200, 255, 0, 0);
         this.cameras.main.fade(1000, 0, 0, 0);
         const txt = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, "CAUGHT!", {

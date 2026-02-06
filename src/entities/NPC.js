@@ -5,6 +5,7 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
 
         this.setCollideWorldBounds(true);
+        this.setImmovable(true); // Make NPC hard to push
         this.body.setSize(24, 24); // Lite mindre hitbox än 32x32
         this.body.setOffset(4, 8);
 
@@ -13,13 +14,16 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         this.walkSpeed = config.speed || 60;
         this.script = config.script || []; // Listan med kommandon
         this.scriptIndex = 0;
+        // State attributes
         this.waitTimer = 0;
         this.isBusy = false; // Om den utför ett kommando just nu
-        
+        this.isInterrupted = false;
+        this.interruptionTimer = 0;
+
         // State
         this.targetX = null;
         this.targetY = null;
-        this.lastDirection = 'DOWN'; 
+        this.lastDirection = 'DOWN';
         this.visionPolygon = null; // För kollisionskoll
 
         // Vision Graphics
@@ -28,29 +32,62 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
     }
 
     update(time, delta) {
+        if (this.isInterrupted) {
+            this.interruptionTimer -= delta;
+            if (this.interruptionTimer <= 0) {
+                this.isInterrupted = false;
+                // Resume movement if applicable
+                if (this.isBusy && this.currentCmd && this.currentCmd.type === 'WALK_TO') {
+                    this.scene.physics.moveTo(this, this.targetX, this.targetY, this.walkSpeed);
+                }
+            }
+            this.drawVisionCone();
+            return;
+        }
+
         if (this.isBusy) {
             this.executeCurrentCommand(delta);
         } else {
             this.nextCommand();
         }
-        
+
+        this.drawVisionCone();
+    }
+
+    onContact(player) {
+        if (this.isInterrupted) return;
+
+        this.isInterrupted = true;
+        this.interruptionTimer = 3000; // Stop for 3 seconds
+        this.body.setVelocity(0, 0);
+
+        // Face player
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            this.lastDirection = dx > 0 ? 'RIGHT' : 'LEFT';
+        } else {
+            this.lastDirection = dy > 0 ? 'DOWN' : 'UP';
+        }
+
         this.drawVisionCone();
     }
 
     drawVisionCone() {
         this.visionGraphics.clear();
-        
+
         const range = 100;
         const angleWidth = 45;
         const startX = this.x;
         const startY = this.y;
-        
+
         let rotation = 0;
         if (this.lastDirection === 'DOWN') rotation = 90;
         else if (this.lastDirection === 'LEFT') rotation = 180;
         else if (this.lastDirection === 'UP') rotation = 270;
         else if (this.lastDirection === 'RIGHT') rotation = 0;
-        
+
         const rad = Phaser.Math.DegToRad(rotation);
         const halfAngle = Phaser.Math.DegToRad(angleWidth / 2);
 
@@ -91,10 +128,10 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
             // Konvertera grid (10, 5) till pixlar (336, 176)
             this.targetX = cmd.x * 32 + 16;
             this.targetY = cmd.y * 32 + 16;
-            
+
             // Sätt fart mot målet
             this.scene.physics.moveTo(this, this.targetX, this.targetY, this.walkSpeed);
-            
+
             // Räkna ut riktning
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
@@ -103,7 +140,7 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
             } else {
                 this.lastDirection = dy > 0 ? 'DOWN' : 'UP';
             }
-        } 
+        }
         else if (cmd.type === 'WAIT') {
             this.waitTimer = cmd.ms;
             this.body.setVelocity(0, 0);
@@ -127,13 +164,13 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
 
         if (cmd.type === 'WALK_TO') {
             const dist = Phaser.Math.Distance.Between(this.x, this.y, this.targetX, this.targetY);
-            
+
             // Är vi framme? (Inom 4 pixlar)
             if (dist < 4) {
                 this.body.reset(this.targetX, this.targetY); // Snappa exakt position
                 this.isBusy = false;
             }
-        } 
+        }
         else if (cmd.type === 'WAIT') {
             this.waitTimer -= delta;
             if (this.waitTimer <= 0) {
@@ -142,5 +179,3 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         }
     }
 }
-
-

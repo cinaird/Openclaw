@@ -109,11 +109,15 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
             this.body.setVelocity(0, 0);
         }
         else if (cmd.type === 'OPEN_DOOR') {
-            this.scene.setDoorState(cmd.x, cmd.y, true);
+            if (this.scene.doorService) {
+                this.scene.doorService.open(cmd.x, cmd.y);
+            }
             this.nextCommand(); // Gå direkt till nästa, ingen väntetid (eller lägg in WAIT i scriptet)
         }
         else if (cmd.type === 'CLOSE_DOOR') {
-            this.scene.setDoorState(cmd.x, cmd.y, false);
+            if (this.scene.doorService) {
+                this.scene.doorService.close(cmd.x, cmd.y);
+            }
             this.nextCommand();
         }
     }
@@ -138,3 +142,5 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         }
     }
 }
+
+

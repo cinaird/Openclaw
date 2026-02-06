@@ -5,6 +5,18 @@
 Architecture, development, and review agent instructions live in `docs/agents/`. Start with `docs/agents/README.md`.
 
 
+## Architecture Overview
+Core runtime responsibilities are now split into systems under `src/systems/`. The `WorldScene` orchestrates these systems:
+- `InputController` handles keyboard + touch input.
+- `LevelLoader` builds maps, interactables, doors, and NPC spawns.
+- `DoorSystem` manages door state and collision behavior.
+- `PortalSystem` handles teleport transitions.
+- `NpcSystem` owns NPC group management and updates.
+
+Content validation and tile semantics live in `src/content/`:
+- `validateLevel.js` performs early content checks.
+- `tileLegend.js` maps tile chars to visuals/behavior.
+
 ## 🕵️ The Vision
 The game takes place in a seemingly normal school setting. You play as a kid exploring corridors, classrooms, and the schoolyard. However, dark secrets lurk beneath the surface (literally, in the basement).
 

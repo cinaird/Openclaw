@@ -19,7 +19,8 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         // State
         this.targetX = null;
         this.targetY = null;
-        this.lastDirection = 'DOWN'; // Default direction
+        this.lastDirection = 'DOWN'; 
+        this.visionPolygon = null; // För kollisionskoll
 
         // Vision Graphics
         this.visionGraphics = scene.add.graphics();
@@ -39,30 +40,38 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
     drawVisionCone() {
         this.visionGraphics.clear();
         
-        // Settings for the cone
-        const range = 100; // Pixel length
-        const angleWidth = 45; // Degrees width
+        const range = 100;
+        const angleWidth = 45;
         const startX = this.x;
         const startY = this.y;
         
-        // Determine rotation based on last known direction
         let rotation = 0;
         if (this.lastDirection === 'DOWN') rotation = 90;
         else if (this.lastDirection === 'LEFT') rotation = 180;
         else if (this.lastDirection === 'UP') rotation = 270;
         else if (this.lastDirection === 'RIGHT') rotation = 0;
         
-        // Convert to radians
         const rad = Phaser.Math.DegToRad(rotation);
         const halfAngle = Phaser.Math.DegToRad(angleWidth / 2);
 
-        this.visionGraphics.fillStyle(0xffff00, 0.3); // Yellow, 30% transparent
-        this.visionGraphics.beginPath();
-        this.visionGraphics.moveTo(startX, startY);
-        this.visionGraphics.lineTo(startX + Math.cos(rad - halfAngle) * range, startY + Math.sin(rad - halfAngle) * range);
-        this.visionGraphics.arc(startX, startY, range, rad - halfAngle, rad + halfAngle);
-        this.visionGraphics.lineTo(startX, startY);
-        this.visionGraphics.fillPath();
+        // Skapa geometri för kollision (En triangel är enklast approximation av konen för nu)
+        // Punkt 1: Ögat
+        // Punkt 2: Vänster kant
+        // Punkt 3: Höger kant
+        const p1 = new Phaser.Geom.Point(startX, startY);
+        const p2 = new Phaser.Geom.Point(
+            startX + Math.cos(rad - halfAngle) * range,
+            startY + Math.sin(rad - halfAngle) * range
+        );
+        const p3 = new Phaser.Geom.Point(
+            startX + Math.cos(rad + halfAngle) * range,
+            startY + Math.sin(rad + halfAngle) * range
+        );
+
+        this.visionPolygon = new Phaser.Geom.Triangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+
+        this.visionGraphics.fillStyle(0xffff00, 0.3);
+        this.visionGraphics.fillTriangleShape(this.visionPolygon);
     }
 
     nextCommand() {

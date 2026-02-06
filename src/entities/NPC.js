@@ -108,6 +108,14 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
             this.waitTimer = cmd.ms;
             this.body.setVelocity(0, 0);
         }
+        else if (cmd.type === 'OPEN_DOOR') {
+            this.scene.setDoorState(cmd.x, cmd.y, true);
+            this.nextCommand(); // Gå direkt till nästa, ingen väntetid (eller lägg in WAIT i scriptet)
+        }
+        else if (cmd.type === 'CLOSE_DOOR') {
+            this.scene.setDoorState(cmd.x, cmd.y, false);
+            this.nextCommand();
+        }
     }
 
     executeCurrentCommand(delta) {

@@ -12,16 +12,16 @@ export class WorldScene extends Phaser.Scene {
     create() {
         // Inputs
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd = this.input.keyboard.addKeys({ 
-            up: Phaser.Input.Keyboard.KeyCodes.W, 
-            down: Phaser.Input.Keyboard.KeyCodes.S, 
-            left: Phaser.Input.Keyboard.KeyCodes.A, 
-            right: Phaser.Input.Keyboard.KeyCodes.D 
+        this.wasd = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A,
+            right: Phaser.Input.Keyboard.KeyCodes.D
         });
-        
+
         // Mobile Touch
         this.input.on('pointerdown', p => { this.joyStick.active = true; this.joyStick.originX = p.x; this.joyStick.originY = p.y; this.joyStick.x = p.x; this.joyStick.y = p.y; });
-        this.input.on('pointermove', p => { if(this.joyStick.active) { this.joyStick.x = p.x; this.joyStick.y = p.y; } });
+        this.input.on('pointermove', p => { if (this.joyStick.active) { this.joyStick.x = p.x; this.joyStick.y = p.y; } });
         this.input.on('pointerup', () => { this.joyStick.active = false; });
 
         // Groups
@@ -34,7 +34,7 @@ export class WorldScene extends Phaser.Scene {
         this.player = this.physics.add.sprite(0, 0, 'player');
         this.player.setDepth(10);
         this.player.setCollideWorldBounds(true);
-        
+
         // Collisions
         this.physics.add.collider(this.player, this.wallsGroup);
         this.physics.add.collider(this.npcGroup, this.wallsGroup); // NPCs stop at walls
@@ -46,8 +46,8 @@ export class WorldScene extends Phaser.Scene {
         this.cameras.main.setZoom(2);
 
         // UI Overlay
-        this.zoneLabel = this.add.text(10, 10, 'LOADING...', { 
-            fontFamily: 'Courier New', fontSize: '16px', fill: '#0f0', backgroundColor: '#000' 
+        this.zoneLabel = this.add.text(10, 10, 'LOADING...', {
+            fontFamily: 'Courier New', fontSize: '16px', fill: '#0f0', backgroundColor: '#000'
         }).setScrollFactor(0).setDepth(100);
 
         // Load Initial Level
@@ -56,10 +56,10 @@ export class WorldScene extends Phaser.Scene {
 
     loadLevel(levelId, spawnX, spawnY) {
         console.log(`Attempting to load level: "${levelId}"`);
-        if (!LEVELS[levelId]) { 
-            console.error(`Level not found in registry: "${levelId}". Available levels:`, Object.keys(LEVELS)); 
+        if (!LEVELS[levelId]) {
+            console.error(`Level not found in registry: "${levelId}". Available levels:`, Object.keys(LEVELS));
             this.add.text(10, 50, `ERROR: Level "${levelId}" not found!`, { fill: '#f00' }).setScrollFactor(0).setDepth(200);
-            return; 
+            return;
         }
         const levelData = LEVELS[levelId];
         this.isTransitioning = false;
@@ -83,22 +83,30 @@ export class WorldScene extends Phaser.Scene {
                 const px = x * this.TILE_SIZE + 16;
                 const py = y * this.TILE_SIZE + 16;
 
-                let bgKey = 'grass';
-                if (['W', 'D', 'S', 'U'].includes(char)) { /* Wall handled below */ }
-                if (['_', 'D', 'S', 'U'].includes(char)) bgKey = 'floor';
-                if (char === '#') bgKey = 'asphalt';
-                if (char === '=' || (levelId === 'basement' && char !== 'W')) bgKey = 'concrete';
+                // Determine Background Frame (0: grass, 1: floor, 2: concrete, 3: asphalt)
+                let frame = 0; // Default grass
+                if (levelId === 'basement') frame = 2; // Default concrete for basement
 
-                let tile = this.add.image(px, py, bgKey);
+                if (['_', 'D', 'S', 'U'].includes(char)) frame = 1;
+                if (char === '#') frame = 3;
+                if (char === '=' || (levelId === 'basement' && char !== 'W')) frame = 2;
+
+                // Draw background tile
+                let tile = this.add.image(px, py, 'tileset', frame);
                 this.currentMapTiles.push(tile);
 
+                // Handle Walls & Objects
                 if (char === 'W') {
-                    this.wallsGroup.create(px, py, 'wall');
+                    // Frame 4 is wall
+                    this.wallsGroup.create(px, py, 'tileset', 4);
                 } else if (char === 'B') {
-                    this.wallsGroup.create(px, py, 'wall').setTint(0xff0000); // Hoop
+                    // Frame 4 is wall, tinted red for hoop
+                    let w = this.wallsGroup.create(px, py, 'tileset', 4);
+                    w.setTint(0xff0000);
                 } else if (['D', 'S', 'U'].includes(char)) {
-                     let key = (char === 'D') ? 'door' : 'stairs';
-                     this.add.image(px, py, key);
+                    let key = (char === 'D') ? 'door' : 'stairs'; // 'door' is generated in BootScene
+                    // Note: 'stairs' texture might still be missing, but door is fixed.
+                    this.add.image(px, py, key);
                 }
             }
         }
@@ -108,11 +116,11 @@ export class WorldScene extends Phaser.Scene {
             levelData.interactables.forEach(obj => {
                 const px = obj.x * this.TILE_SIZE + 16;
                 const py = obj.y * this.TILE_SIZE + 16;
-                
+
                 if (obj.type === 'TELEPORT') {
                     let pObj = this.portalsGroup.create(px, py, null);
                     pObj.setVisible(false);
-                    pObj.body.setSize(16, 16); 
+                    pObj.body.setSize(16, 16);
                     pObj.setData('target', obj.targetLevel);
                     pObj.setData('tx', obj.targetSpawnX);
                     pObj.setData('ty', obj.targetSpawnY);
@@ -126,7 +134,7 @@ export class WorldScene extends Phaser.Scene {
                 // Konvertera grid-pos till pixel-pos
                 const px = npcData.x * this.TILE_SIZE + 16;
                 const py = npcData.y * this.TILE_SIZE + 16;
-                
+
                 // Texture: Vi använder 'player' fast röd-tintad just nu tills vi har 'guard.png'
                 const npc = new NPC(this, px, py, 'player', npcData);
                 npc.setTint(0xff0000); // Röd = Fiende/NPC
@@ -145,7 +153,7 @@ export class WorldScene extends Phaser.Scene {
 
     handlePortal(player, portal) {
         if (this.isTransitioning) return;
-        
+
         const targetLevel = portal.getData('target');
         const targetX = portal.getData('tx');
         const targetY = portal.getData('ty');
@@ -179,8 +187,8 @@ export class WorldScene extends Phaser.Scene {
         }
 
         if (velX !== 0 || velY !== 0) {
-            const l = Math.sqrt(velX*velX + velY*velY);
-            this.player.setVelocity((velX/l) * this.SPEED, (velY/l) * this.SPEED);
+            const l = Math.sqrt(velX * velX + velY * velY);
+            this.player.setVelocity((velX / l) * this.SPEED, (velY / l) * this.SPEED);
         }
     }
 }

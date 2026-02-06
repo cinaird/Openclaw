@@ -1,0 +1,27 @@
+{
+  "name": "openclaw-test",
+  "version": "1.0.0",
+  "description": "> **Concept:** A top-down pixel art adventure game inspired by *Stranger Things* and classic SNES RPGs (Zelda/Earthbound).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cinaird/Openclaw.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/cinaird/Openclaw/issues"
+  },
+  "homepage": "https://github.com/cinaird/Openclaw#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.1"
+  }
+}

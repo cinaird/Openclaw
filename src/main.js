@@ -1,6 +1,8 @@
 import { BootScene } from './scenes/BootScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 
+console.log("Main.js loaded. Starting game config...");
+
 const config = {
     type: Phaser.AUTO,
     width: window.innerWidth,
@@ -21,4 +23,4 @@ const config = {
     }
 };
 
-new Phaser.Game(config);
+window.game = new Phaser.Game(config);

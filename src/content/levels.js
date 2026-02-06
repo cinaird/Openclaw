@@ -1,6 +1,6 @@
-import { schoolYard } from './schoolYard.js';
-import { schoolHall } from './schoolHall.js';
-import { basement } from './basement.js';
+import { schoolYard } from './levels/schoolYard.js';
+import { schoolHall } from './levels/schoolHall.js';
+import { basement } from './levels/basement.js';
 
 export const LEVELS = {
     [schoolYard.id]: schoolYard,

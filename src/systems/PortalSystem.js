@@ -1,3 +1,5 @@
+import { GameState } from './GameState.js';
+
 export class PortalSystem {
     constructor(scene) {
         this.scene = scene;
@@ -17,6 +19,24 @@ export class PortalSystem {
                 this.scene.loadLevel(targetLevel, targetX, targetY);
                 this.scene.cameras.main.fadeIn(500, 0, 0, 0);
             });
+        }
+    }
+
+    handleNpcOverlap(npc, portal) {
+        if (!npc.active) return;
+
+        const targetLevel = portal.getData('target');
+        const targetX = portal.getData('tx');
+        const targetY = portal.getData('ty');
+
+        if (targetLevel && npc.id) {
+            console.log(`NPC ${npc.id} entered portal to ${targetLevel}`);
+            
+            // 1. Update Global State
+            GameState.updateNpcLocation(npc.id, targetLevel, targetX, targetY);
+
+            // 2. Remove from current scene
+            npc.destroy();
         }
     }
 }

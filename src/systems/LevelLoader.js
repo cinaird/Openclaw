@@ -2,6 +2,7 @@ import { LEVELS } from '../content/levels.js';
 import { NPC } from '../entities/NPC.js';
 import { validateLevel } from '../content/validateLevel.js';
 import { TILE_LEGEND, getTileFrame } from '../content/tileLegend.js';
+import { GameState } from './GameState.js';
 
 export class LevelLoader {
     constructor(scene) {
@@ -98,16 +99,60 @@ export class LevelLoader {
             });
         }
 
-        // Spawn NPCs
+        // Spawn NPCs (Managed by GameState)
+        // 1. Iterate over NPCs defined for this level (Potential spawns)
+        // 2. Iterate over GLOBAL NPCs that might have moved HERE from elsewhere
+        
+        // Strategy: We rely on the initial definition to "register" them, 
+        // but checking ALL levels for every load is expensive.
+        // For now, let's assume NPCs are defined in their "Home Level" in levels.js.
+        // If they move, GameState tracks it.
+        
+        // Note: This logic means if an NPC moves TO a level where they aren't defined in `levels.js`,
+        // they won't spawn unless we iterate ALL NPC IDs in GameState.
+        // Let's do a mix: Check local definitions, AND check GameState for any visitors.
+        
+        const localNpcIds = new Set();
+
+        // 1. Check statically defined NPCs for this level
         if (levelData.npcs) {
             levelData.npcs.forEach(npcData => {
-                const px = npcData.x * scene.TILE_SIZE + 16;
-                const py = npcData.y * scene.TILE_SIZE + 16;
-                const npc = new NPC(scene, px, py, 'player', npcData);
-                npc.setTint(0xff0000);
-                scene.npcSystem.add(npc);
+                const npcId = npcData.id;
+                localNpcIds.add(npcId);
+                
+                // Initialize state if new (using this level as home)
+                const state = GameState.getNpcState(npcId, { 
+                    levelId: levelId, 
+                    x: npcData.x, 
+                    y: npcData.y 
+                });
+
+                // Only spawn if they are ACTUALLY here
+                if (state.level === levelId) {
+                    const px = state.x * scene.TILE_SIZE + 16;
+                    const py = state.y * scene.TILE_SIZE + 16;
+                    const npc = new NPC(scene, px, py, 'player', npcData);
+                    npc.setTint(0xff0000);
+                    scene.npcSystem.add(npc);
+                }
             });
         }
+
+        // 2. Check for visitors (NPCs from other levels that traveled here)
+        Object.keys(GameState.npcs).forEach(npcId => {
+            if (!localNpcIds.has(npcId)) {
+                const state = GameState.npcs[npcId];
+                if (state.level === levelId) {
+                    // This visitor is here! But we need their config (texture, script).
+                    // We don't have it locally.
+                    // Solution: We need a Global NPC Registry or look it up from their source level.
+                    // For prototype: We skip visual config or find a way to access it.
+                    // Let's assume we can look up the "Base Config" from a global registry later.
+                    // For now, let's just log it. Visitor spawning is Phase 2.
+                    console.log(`Visitor NPC ${npcId} detected but no template found locally.`);
+                }
+            }
+        });
 
         // Position Player
         const finalX = (spawnX !== undefined ? spawnX : levelData.startPos.x) * scene.TILE_SIZE + 16;

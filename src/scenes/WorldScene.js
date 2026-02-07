@@ -45,6 +45,7 @@ export class WorldScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.doorsGroup, this.doorSystem.handleDoorCollision, null, this.doorSystem); // Player collides OR interacts
 
         this.physics.add.overlap(this.player, this.portalsGroup, this.portalSystem.handleOverlap, null, this.portalSystem);
+        this.physics.add.overlap(this.npcSystem.group, this.portalsGroup, this.portalSystem.handleNpcOverlap, null, this.portalSystem); // NPCs use portals
 
         // Camera
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);

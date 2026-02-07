@@ -1,5 +1,4 @@
 import { LEVELS } from '../content/levels.js';
-import { NPC } from '../entities/NPC.js';
 import { validateLevel } from '../content/validateLevel.js';
 import { TILE_LEGEND, getTileFrame } from '../content/tileLegend.js';
 
@@ -18,8 +17,7 @@ export class LevelLoader {
                 .setDepth(200);
             return;
         }
-        scene.currentLevelData = LEVELS[levelId];
-        const levelData = scene.currentLevelData;
+        const levelData = LEVELS[levelId];
         const errors = validateLevel(levelData);
         if (errors.length > 0) {
             console.warn(`Validation errors for level "${levelId}":`, errors);
@@ -30,10 +28,11 @@ export class LevelLoader {
         scene.wallsGroup.clear(true, true);
         scene.portalsGroup.clear(true, true);
         scene.doorsGroup.clear(true, true);
-        scene.npcSystem.clear();
+        scene.npcSystem.clear({ persist: true });
         scene.currentMapTiles.forEach(t => t.destroy());
         scene.currentMapTiles = [];
         scene.doorSystem.clear();
+        scene.currentLevelData = levelData;
 
         // Environment
         scene.cameras.main.setBackgroundColor(levelData.bgColor);
@@ -98,16 +97,8 @@ export class LevelLoader {
             });
         }
 
-        // Spawn NPCs
-        if (levelData.npcs) {
-            levelData.npcs.forEach(npcData => {
-                const px = npcData.x * scene.TILE_SIZE + 16;
-                const py = npcData.y * scene.TILE_SIZE + 16;
-                const npc = new NPC(scene, px, py, 'player', npcData);
-                npc.setTint(0xff0000);
-                scene.npcSystem.add(npc);
-            });
-        }
+        // Spawn NPCs from registry + game state
+        scene.npcSystem.spawnForLevel(levelId);
 
         // Position Player
         const finalX = (spawnX !== undefined ? spawnX : levelData.startPos.x) * scene.TILE_SIZE + 16;

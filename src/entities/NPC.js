@@ -13,22 +13,29 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         this.id = config.id || 'unknown_npc';
         this.walkSpeed = config.speed || 60;
         this.script = config.script || []; // Listan med kommandon
-        this.scriptIndex = 0;
+        this.scriptId = config.scriptId || null;
+        this.scriptIndex = config.scriptIndex || 0;
         // State attributes
-        this.waitTimer = 0;
-        this.isBusy = false; // Om den utför ett kommando just nu
-        this.isInterrupted = false;
-        this.interruptionTimer = 0;
+        this.waitTimer = config.waitTimer || 0;
+        this.isBusy = !!config.isBusy; // Om den utför ett kommando just nu
+        this.isInterrupted = !!config.isInterrupted;
+        this.interruptionTimer = config.interruptionTimer || 0;
 
         // State
-        this.targetX = null;
-        this.targetY = null;
-        this.lastDirection = 'DOWN';
+        this.targetX = config.targetX ?? null;
+        this.targetY = config.targetY ?? null;
+        this.lastDirection = config.lastDirection || 'DOWN';
         this.visionPolygon = null; // För kollisionskoll
+        this.currentCmd = null;
 
         // Vision Graphics
         this.visionGraphics = scene.add.graphics();
         this.visionGraphics.setDepth(5); // Render below player/walls but above floor
+
+        if (config.currentCmd) {
+            this.currentCmd = config.currentCmd;
+            this.resumeCurrentCommand();
+        }
     }
 
     update(time, delta) {
@@ -52,6 +59,15 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.drawVisionCone();
+    }
+
+    resumeCurrentCommand() {
+        if (!this.currentCmd || !this.isBusy) return;
+        if (this.currentCmd.type === 'WALK_TO' && this.targetX !== null && this.targetY !== null) {
+            this.scene.physics.moveTo(this, this.targetX, this.targetY, this.walkSpeed);
+        } else if (this.currentCmd.type === 'WAIT' && this.waitTimer > 0) {
+            this.body.setVelocity(0, 0);
+        }
     }
 
     onContact(player) {
@@ -178,4 +194,33 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
             }
         }
     }
+
+    exportState(tileSize) {
+        const half = tileSize / 2;
+        const toTile = value => Math.round((value - half) / tileSize);
+        return {
+            id: this.id,
+            level: this.scene.currentLevelData?.id,
+            x: toTile(this.x),
+            y: toTile(this.y),
+            scriptId: this.scriptId,
+            scriptIndex: this.scriptIndex,
+            waitTimer: this.waitTimer,
+            lastDirection: this.lastDirection,
+            isBusy: this.isBusy,
+            isInterrupted: this.isInterrupted,
+            interruptionTimer: this.interruptionTimer,
+            currentCmd: this.isBusy ? this.currentCmd : null,
+            targetX: this.isBusy ? this.targetX : null,
+            targetY: this.isBusy ? this.targetY : null
+        };
+    }
+
+    destroy(fromScene) {
+        if (this.visionGraphics) {
+            this.visionGraphics.destroy();
+        }
+        super.destroy(fromScene);
+    }
 }
+

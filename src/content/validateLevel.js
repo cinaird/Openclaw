@@ -37,11 +37,6 @@ function validateCoord(levelId, label, x, y, layout, errors) {
     }
 }
 
-function hasDoorAt(interactables, x, y) {
-    if (!Array.isArray(interactables)) return false;
-    return interactables.some(i => i && i.hasDoor && i.x === x && i.y === y);
-}
-
 function validateInteractables(levelId, interactables, layout, errors) {
     if (!interactables) return;
     if (!Array.isArray(interactables)) {
@@ -65,32 +60,6 @@ function validateInteractables(levelId, interactables, layout, errors) {
     });
 }
 
-function validateNpcs(levelId, npcs, layout, interactables, errors) {
-    if (!npcs) return;
-    if (!Array.isArray(npcs)) {
-        errors.push(`[${levelId}] npcs must be an array.`);
-        return;
-    }
-    npcs.forEach((npc, idx) => {
-        if (!npc || typeof npc !== 'object') {
-            errors.push(`[${levelId}] npc ${idx} is not an object.`);
-            return;
-        }
-        validateCoord(levelId, `npc ${idx}`, npc.x, npc.y, layout, errors);
-        if (Array.isArray(npc.script)) {
-            npc.script.forEach((cmd, cidx) => {
-                if (cmd.type === 'OPEN_DOOR' || cmd.type === 'CLOSE_DOOR') {
-                    if (!hasDoorAt(interactables, cmd.x, cmd.y)) {
-                        errors.push(
-                            `[${levelId}] npc ${idx} script ${cidx} references missing door at (${cmd.x},${cmd.y}).`
-                        );
-                    }
-                }
-            });
-        }
-    });
-}
-
 export function validateLevel(levelData) {
     const errors = [];
     if (!levelData || typeof levelData !== 'object') {
@@ -106,7 +75,6 @@ export function validateLevel(levelData) {
     if (Array.isArray(levelData.layout)) {
         validateCoord(levelId, 'startPos', levelData.startPos?.x, levelData.startPos?.y, levelData.layout, errors);
         validateInteractables(levelId, levelData.interactables, levelData.layout, errors);
-        validateNpcs(levelId, levelData.npcs, levelData.layout, levelData.interactables, errors);
     }
 
     return errors;

@@ -23,6 +23,5 @@ export const basement = {
             targetSpawnY: 2
         }
     ],
-    startPos: { x: 5, y: 5 },
-    npcs: [{ type: "rat", x: 10, y: 5 }] 
+    startPos: { x: 5, y: 5 }
 };

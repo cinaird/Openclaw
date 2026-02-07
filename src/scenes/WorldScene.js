@@ -3,6 +3,9 @@ import { LevelLoader } from '../systems/LevelLoader.js';
 import { DoorSystem } from '../systems/DoorSystem.js';
 import { PortalSystem } from '../systems/PortalSystem.js';
 import { NpcSystem } from '../systems/NpcSystem.js';
+import { GameState } from '../systems/GameState.js';
+import { NPC_REGISTRY } from '../content/npcs.js';
+import { LEVELS } from '../content/levels.js';
 
 export class WorldScene extends Phaser.Scene {
     constructor() {
@@ -22,7 +25,9 @@ export class WorldScene extends Phaser.Scene {
         this.currentMapTiles = [];
         this.doorSystem = new DoorSystem(this);
         this.portalSystem = new PortalSystem(this);
-        this.npcSystem = new NpcSystem(this);
+        this.gameState = new GameState(NPC_REGISTRY, LEVELS);
+        this.gameState.initialize();
+        this.npcSystem = new NpcSystem(this, NPC_REGISTRY, this.gameState);
 
         // Player Init
         this.player = this.physics.add.sprite(0, 0, 'player');
@@ -45,6 +50,7 @@ export class WorldScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.doorsGroup, this.doorSystem.handleDoorCollision, null, this.doorSystem); // Player collides OR interacts
 
         this.physics.add.overlap(this.player, this.portalsGroup, this.portalSystem.handleOverlap, null, this.portalSystem);
+        this.physics.add.overlap(this.npcSystem.group, this.portalsGroup, this.portalSystem.handleNpcOverlap, null, this.portalSystem);
 
         // Camera
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);

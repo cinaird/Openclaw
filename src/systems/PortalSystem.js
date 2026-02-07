@@ -19,4 +19,14 @@ export class PortalSystem {
             });
         }
     }
+
+    handleNpcOverlap(npc, portal) {
+        const targetLevel = portal.getData('target');
+        const targetX = portal.getData('tx');
+        const targetY = portal.getData('ty');
+        if (!targetLevel || !npc?.id) return;
+
+        this.scene.gameState.transferNpcToLevel(npc.id, targetLevel, targetX, targetY);
+        this.scene.npcSystem.group.remove(npc, true, true);
+    }
 }

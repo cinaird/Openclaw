@@ -110,4 +110,24 @@ test.describe('Game Mechanics', () => {
         expect(zoneName).toContain('BASEMENT');
     });
 
+    test('NPC registry and GameState should validate without warnings', async ({ page }) => {
+        const warnings = [];
+        page.on('console', msg => {
+            if (msg.type() === 'warning') {
+                warnings.push(msg.text());
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForFunction(() => window.game && window.game.scene.scenes.length > 0);
+        await page.waitForTimeout(200);
+
+        const npcWarnings = warnings.filter(text =>
+            text.includes('NPC registry validation errors') ||
+            text.includes('GameState validation errors')
+        );
+
+        expect(npcWarnings, `Unexpected NPC validation warnings: ${npcWarnings.join(' | ')}`).toHaveLength(0);
+    });
+
 });

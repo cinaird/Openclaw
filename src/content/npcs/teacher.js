@@ -5,7 +5,7 @@ export const teacher = {
     tint: 0xff0000,
     spawns: {
         school_yard: { x: 9, y: 14 },
-        school_hall: { x: 4, y: 5 }
+        school_hall: { x: 3, y: 4 }
     },
     scripts: {
         school_yard: [

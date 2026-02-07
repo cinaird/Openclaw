@@ -65,15 +65,19 @@ export class GameState {
         const state = this.npcs[id];
         if (!state) return;
         const registryEntry = this.registry[id];
-        const useDefaultSpawn = !Number.isFinite(targetX) || !Number.isFinite(targetY);
-        if (useDefaultSpawn && registryEntry?.spawns?.[targetLevel]) {
+
+        // Priority 1: Specific spawn defined in NPC registry for this level
+        if (registryEntry?.spawns?.[targetLevel]) {
             targetX = registryEntry.spawns[targetLevel].x;
             targetY = registryEntry.spawns[targetLevel].y;
         }
-        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+        // Priority 2: Portal target coordinates (if valid)
+        else if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+            // Priority 3: Default (0,0)
             targetX = 0;
             targetY = 0;
         }
+
         state.level = targetLevel;
         state.x = targetX;
         state.y = targetY;

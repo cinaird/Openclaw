@@ -4,12 +4,12 @@ export const teacher = {
     texture: "player", // Placeholder until we have specific sprite
     speed: 40,
     startLevel: "school_yard",
-    startPos: { x: 8, y: 2 }, // Start INSIDE the school (behind the locked door)
+    startPos: { x: 8, y: 3 }, // Start INSIDE (Row 3 is floor, Row 2 is wall!)
     scripts: {
         "school_yard": [
             // Phase 1: Go Out
             { type: "WAIT", ms: 2000 },
-            { type: "WALK_TO", x: 8, y: 3 }, // Walk to door (from inside)
+            { type: "WALK_TO", x: 8, y: 3 }, // Ensure standing at door
             { type: "WAIT", ms: 500 },
             { type: "OPEN_DOOR", x: 8, y: 4 }, // Unlock & Open
             { type: "WAIT", ms: 500 },
@@ -33,10 +33,10 @@ export const teacher = {
 
             // Phase 4: Reset
             { type: "WAIT", ms: 500 },
-            { type: "WALK_TO", x: 8, y: 2 }, // Return to desk/start
+            { type: "WALK_TO", x: 8, y: 3 }, // Stay inside near door
             { type: "LOOP" }
         ],
-        // Fallback if he ends up in the hall somehow
+        // Fallback
         "school_hall": [
             { type: "WALK_TO", x: 2, y: 2 },
             { type: "WAIT", ms: 2000 },

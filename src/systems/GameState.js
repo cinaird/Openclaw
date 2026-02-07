@@ -1,20 +1,25 @@
-// Global Game State to persist data between levels
-// This acts as the "save file" in memory.
+import { NPC_REGISTRY } from '../content/npcs.js';
 
+// Global Game State to persist data between levels
 export const GameState = {
     // Map of NPC ID -> { level: string, x: number, y: number, scriptIndex: number }
     npcs: {},
 
-    // Helper to get or initialize an NPC state
-    getNpcState(npcId, defaultData) {
-        if (!this.npcs[npcId]) {
-            this.npcs[npcId] = {
-                level: defaultData.levelId, // Where they start initially
-                x: defaultData.x,
-                y: defaultData.y,
+    // Initialize all global NPCs from registry
+    initialize() {
+        Object.values(NPC_REGISTRY).forEach(npcData => {
+            this.npcs[npcData.id] = {
+                level: npcData.startLevel,
+                x: npcData.startPos.x,
+                y: npcData.startPos.y,
                 scriptIndex: 0
             };
-        }
+        });
+        console.log("GameState initialized with NPCs:", Object.keys(this.npcs));
+    },
+
+    // Get current state for an NPC
+    getNpcState(npcId) {
         return this.npcs[npcId];
     },
 

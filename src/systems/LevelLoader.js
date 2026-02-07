@@ -2,16 +2,10 @@ import { LEVELS } from '../content/levels.js';
 import { NPC } from '../entities/NPC.js';
 import { validateLevel } from '../content/validateLevel.js';
 import { TILE_LEGEND, getTileFrame } from '../content/tileLegend.js';
-import { GameState } from './GameState.js';
-import { NPC_REGISTRY } from '../content/npcs.js';
 
 export class LevelLoader {
     constructor(scene) {
         this.scene = scene;
-        // Ensure GameState is ready (idempotent)
-        if (Object.keys(GameState.npcs).length === 0) {
-            GameState.initialize();
-        }
     }
 
     load(levelId, spawnX, spawnY) {
@@ -104,37 +98,16 @@ export class LevelLoader {
             });
         }
 
-        // Spawn NPCs (Managed by GameState)
-        Object.keys(GameState.npcs).forEach(npcId => {
-            const state = GameState.npcs[npcId];
-            
-            if (state.level === levelId) {
-                // Get static config from registry
-                const config = NPC_REGISTRY[npcId];
-                if (!config) {
-                    console.warn(`NPC ${npcId} has state but no registry config.`);
-                    return;
-                }
-
-                // Determine which script to use for this level
-                const levelScript = config.scripts ? config.scripts[levelId] : null;
-                
-                // Create final config for NPC instance
-                const liveConfig = {
-                    ...config,
-                    x: state.x,
-                    y: state.y,
-                    script: levelScript || [] // Use level-specific script or empty
-                };
-                
-                const px = state.x * scene.TILE_SIZE + 16;
-                const py = state.y * scene.TILE_SIZE + 16;
-                
-                const npc = new NPC(scene, px, py, config.texture || 'player', liveConfig);
+        // Spawn NPCs
+        if (levelData.npcs) {
+            levelData.npcs.forEach(npcData => {
+                const px = npcData.x * scene.TILE_SIZE + 16;
+                const py = npcData.y * scene.TILE_SIZE + 16;
+                const npc = new NPC(scene, px, py, 'player', npcData);
                 npc.setTint(0xff0000);
                 scene.npcSystem.add(npc);
-            }
-        });
+            });
+        }
 
         // Position Player
         const finalX = (spawnX !== undefined ? spawnX : levelData.startPos.x) * scene.TILE_SIZE + 16;

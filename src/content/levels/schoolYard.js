@@ -26,7 +26,8 @@ export const schoolYard = {
             targetLevel: "school_hall", 
             targetSpawnX: 2, 
             targetSpawnY: 5,
-            hasDoor: true 
+            hasDoor: true,
+            isLocked: true // Start locked
         }
     ],
     startPos: { x: 10, y: 10 }

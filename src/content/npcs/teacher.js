@@ -1,10 +1,13 @@
 export const teacher = {
     id: "teacher",
     name: "Mr. Teacher",
-    texture: "player", // Placeholder until we have specific sprite
-    speed: 40,
-    startLevel: "school_yard",
-    startPos: { x: 8, y: 3 }, // Start INSIDE (Row 3 is floor, Row 2 is wall!)
+    sprite: "player",
+    speed: 50,
+    tint: 0xff0000,
+    spawns: {
+        school_yard: { x: 8, y: 3 },
+        school_hall: { x: 3, y: 4 }
+    },
     scripts: {
         "school_yard": [
             // Phase 1: Go Out

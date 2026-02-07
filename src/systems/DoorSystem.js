@@ -41,6 +41,24 @@ export class DoorSystem {
         this.setDoorState(gridX, gridY, false);
     }
 
+    lockDoor(gridX, gridY) {
+        const key = `${gridX},${gridY}`;
+        const door = this.doorsMap.get(key);
+        if (door) {
+            door.setData('isLocked', true);
+            // Optional: visual cue for lock?
+            // For now just data.
+        }
+    }
+
+    unlockDoor(gridX, gridY) {
+        const key = `${gridX},${gridY}`;
+        const door = this.doorsMap.get(key);
+        if (door) {
+            door.setData('isLocked', false);
+        }
+    }
+
     handleDoorCollision(player, door) {
         // Allow player to open the door by walking into it IF it's not locked
         if (!door.getData('isOpen') && !door.getData('isLocked')) {

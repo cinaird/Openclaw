@@ -5,38 +5,41 @@ export const teacher = {
     speed: 50,
     tint: 0xff0000,
     spawns: {
-        school_yard: { x: 8, y: 3 },
+        school_yard: { x: 10, y: 8 },
         school_hall: { x: 3, y: 4 }
     },
     scripts: {
         "school_yard": [
-            // Phase 1: Go Out
-            { type: "WAIT", ms: 2000 },
-            { type: "WALK_TO", x: 8, y: 3 }, // Ensure standing at door
-            { type: "WAIT", ms: 500 },
-            { type: "OPEN_DOOR", x: 8, y: 4 }, // Unlock & Open
-            { type: "WAIT", ms: 500 },
-            { type: "WALK_TO", x: 8, y: 5 }, // Walk through to outside
-            { type: "CLOSE_DOOR", x: 8, y: 4 }, // Close behind
-
-            // Phase 2: Patrol Outside
+            // Start Outside
             { type: "WAIT", ms: 1000 },
-            { type: "WALK_TO", x: 5, y: 8 }, // Walk to yard patrol point
-            { type: "WAIT", ms: 3000 },      // Look around
-            { type: "WALK_TO", x: 15, y: 8 }, // Another point
+            // Walk to Main Door
+            { type: "WALK_TO", x: 10, y: 7 },
+            // Unlock & Open
+            { type: "UNLOCK_DOOR", x: 10, y: 6 },
+            { type: "OPEN_DOOR", x: 10, y: 6 },
+            { type: "WAIT", ms: 500 },
+            // Enter
+            { type: "WALK_TO", x: 10, y: 5 },
+            // Close & Lock Behind
+            { type: "CLOSE_DOOR", x: 10, y: 6 },
+            { type: "LOCK_DOOR", x: 10, y: 6 },
+            // Wait Inside
             { type: "WAIT", ms: 2000 },
-            { type: "WALK_TO", x: 8, y: 5 }, // Return to door (outside)
-
-            // Phase 3: Go In
+            // Walk Aside
+            { type: "WALK_TO", x: 14, y: 5 },
+            { type: "WAIT", ms: 1000 },
+            // Walk Back
+            { type: "WALK_TO", x: 10, y: 5 },
+            // Unlock & Open to Exit
+            { type: "UNLOCK_DOOR", x: 10, y: 6 },
+            { type: "OPEN_DOOR", x: 10, y: 6 },
             { type: "WAIT", ms: 500 },
-            { type: "OPEN_DOOR", x: 8, y: 4 }, // Open
-            { type: "WAIT", ms: 500 },
-            { type: "WALK_TO", x: 8, y: 3 }, // Walk through to inside
-            { type: "CLOSE_DOOR", x: 8, y: 4 }, // Lock behind
-
-            // Phase 4: Reset
-            { type: "WAIT", ms: 500 },
-            { type: "WALK_TO", x: 8, y: 3 }, // Stay inside near door
+            // Exit
+            { type: "WALK_TO", x: 10, y: 7 },
+            // Close & Lock Behind
+            { type: "CLOSE_DOOR", x: 10, y: 6 },
+            { type: "LOCK_DOOR", x: 10, y: 6 },
+            // Loop
             { type: "LOOP" }
         ],
         // Fallback

@@ -167,9 +167,27 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
             }
             this.nextCommand(); // Gå direkt till nästa, ingen väntetid (eller lägg in WAIT i scriptet)
         }
+        else if (cmd.type === 'TELEPORT') {
+            const tx = cmd.x * 32 + 16;
+            const ty = cmd.y * 32 + 16;
+            this.body.reset(tx, ty);
+            this.nextCommand();
+        }
         else if (cmd.type === 'CLOSE_DOOR') {
             if (this.scene.doorService) {
                 this.scene.doorService.close(cmd.x, cmd.y);
+            }
+            this.nextCommand();
+        }
+        else if (cmd.type === 'LOCK_DOOR') {
+            if (this.scene.doorService) {
+                this.scene.doorService.lock(cmd.x, cmd.y);
+            }
+            this.nextCommand();
+        }
+        else if (cmd.type === 'UNLOCK_DOOR') {
+            if (this.scene.doorService) {
+                this.scene.doorService.unlock(cmd.x, cmd.y);
             }
             this.nextCommand();
         }

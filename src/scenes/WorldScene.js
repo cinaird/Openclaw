@@ -37,7 +37,9 @@ export class WorldScene extends Phaser.Scene {
         this.levelLoader = new LevelLoader(this);
         this.doorService = {
             open: (x, y) => this.doorSystem.openDoor(x, y),
-            close: (x, y) => this.doorSystem.closeDoor(x, y)
+            close: (x, y) => this.doorSystem.closeDoor(x, y),
+            lock: (x, y) => this.doorSystem.lockDoor(x, y),
+            unlock: (x, y) => this.doorSystem.unlockDoor(x, y)
         };
 
         // Collisions
